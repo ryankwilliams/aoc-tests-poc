@@ -1,0 +1,15 @@
+# IDE
+.idea
+.vscode
+
+# Python compiled files
+*.py[cod]
+
+# Pytest
+tests/.pytest_cache
+
+# Python Virtual Environments
+venv*
+
+# Junit xml files
+*.xml
