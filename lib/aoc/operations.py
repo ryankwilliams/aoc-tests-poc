@@ -1,4 +1,4 @@
-"""Operations Package.
+"""Operations module.
 
 This package contains additional packages/modules "libraries" that
 handle Ansible On Clouds operations using the ops container image.
@@ -7,7 +7,7 @@ from typing import Dict
 
 import pytest
 
-from tests.lib.container_engine import ContainerEngine
+from lib.containers import ContainerEngine
 
 
 class OperationsBase:

@@ -1,4 +1,4 @@
-"""AoC on GCP Backup module.
+"""AoC on GCP restore module.
 
 This module performs the standard operations for backing up an
 AoC deployment on GCP cloud.
@@ -8,41 +8,41 @@ from typing import Union
 
 import pytest
 
-from tests.lib.operations import OperationsBase
+from lib.aoc.operations import OperationsBase
 
 __all__ = [
-    "AocGcpBackup",
-    "AocGcpBackupDataVars",
-    "Aoc23GcpBackupDataVars",
-    "AocGcpBackupAvailableVars",
+    "AocGcpRestore",
+    "AocGcpRestoreDataVars",
+    "Aoc23GcpRestoreDataVars",
+    "AocGcpRestoreAvailableVars",
 ]
 
 
 class AocGcpBackUpDataExtraVars(TypedDict, total=False):
-    """AoC default backup operations playbook data extra vars."""
+    """AoC default restore operations playbook data extra vars."""
 
     # TODO: Implement typed dict
     todo: str
 
 
-class AocGcpBackupDataVars(TypedDict, total=False):
-    """AoC default backup operations playbook data vars."""
+class AocGcpRestoreDataVars(TypedDict, total=False):
+    """AoC default restore operations playbook data vars."""
 
     # TODO: Implement typed dict
     todo: str
 
 
-class Aoc23GcpBackupDataVars(AocGcpBackupDataVars):
-    """AoC 2.3 gcp backup operations playbook data vars."""
+class Aoc23GcpRestoreDataVars(AocGcpRestoreDataVars):
+    """AoC 2.3 gcp restore operations playbook data vars."""
 
     pass
 
 
-AocGcpBackupAvailableVars = Union[Aoc23GcpBackupDataVars, AocGcpBackupDataVars]
+AocGcpRestoreAvailableVars = Union[Aoc23GcpRestoreDataVars, AocGcpRestoreDataVars]
 
 
-class AocGcpBackup(OperationsBase):
-    """AocGcpBackup Class."""
+class AocGcpRestore(OperationsBase):
+    """AocGcpRestore Class."""
 
     def __init__(
         self,
@@ -52,7 +52,7 @@ class AocGcpBackup(OperationsBase):
         aoc_image_registry_username: str,
         aoc_image_registry_password: str,
         ansible_module: pytest.fixture,
-        command_generator_vars: AocGcpBackupAvailableVars,
+        command_generator_vars: AocGcpRestoreAvailableVars,
     ) -> None:
         """Constructor.
 
@@ -76,7 +76,7 @@ class AocGcpBackup(OperationsBase):
             ansible_module,
         )
 
-        self.command_generator_vars: AocGcpBackupAvailableVars = command_generator_vars
+        self.command_generator_vars: AocGcpRestoreAvailableVars = command_generator_vars
 
         # TODO: Populate the correct command with arguments
         self.command = "command_generator_vars"
@@ -85,7 +85,7 @@ class AocGcpBackup(OperationsBase):
             raise SystemExit(1)
 
     def __validate(self) -> bool:
-        """Validates any necessary input prior to performing backups.
+        """Validates any necessary input prior to performing restores.
 
         :return: the overall result of the validations performed
         """

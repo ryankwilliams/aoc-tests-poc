@@ -1,10 +1,8 @@
 """Tests validating AoC on AWS backups."""
-import os
-
 import pytest
 
-from tests.lib.operations.backup.aws import *
-from tests.operations.defaults import *
+from lib.aoc.aws.operations.backup import *
+from tests.aoc.defaults import *
 
 
 @pytest.fixture

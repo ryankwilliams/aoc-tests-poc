@@ -1,10 +1,8 @@
 """Tests validating AoC on AWS restores."""
-import os
-
 import pytest
 
-from tests.lib.operations.restore.aws import *
-from tests.operations.defaults import *
+from lib.aoc.aws.operations.restore import *
+from tests.aoc.defaults import *
 
 
 @pytest.fixture
