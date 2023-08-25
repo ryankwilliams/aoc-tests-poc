@@ -1,6 +1,6 @@
-"""AoC on AWS Backup module.
+"""AoC on AWS restore module.
 
-This module performs the standard operations for backing up an
+This module performs the standard operations for restoring an
 AoC deployment on AWS cloud.
 """
 from typing import TypedDict
@@ -8,45 +8,45 @@ from typing import Union
 
 import pytest
 
-from tests.lib.operations import OperationsBase
+from lib.aoc.operations import OperationsBase
 
 __all__ = [
-    "AocAwsBackup",
-    "AocAwsBackupDataVars",
-    "Aoc23AwsBackupDataVars",
-    "AocAwsBackupAvailableVars",
+    "AocAwsRestore",
+    "AocAwsRestoreDataVars",
+    "Aoc23AwsRestoreDataVars",
+    "AocAwsRestoreAvailableVars",
 ]
 
 
-class AocAwsBackupDataExtraVars(TypedDict, total=False):
-    """AoC default backup operations playbook data extra vars."""
+class AocAwsRestoreDataExtraVars(TypedDict, total=False):
+    """AoC default restore operations playbook data extra vars."""
 
-    aws_backup_iam_role: str
-    aws_backup_vault_name: str
+    aws_restore_iam_role: str
+    aws_restore_vault_name: str
     aws_region: str
     aws_s3_bucket: str
 
 
-class AocAwsBackupDataVars(TypedDict, total=False):
-    """AoC default backup operations playbook data vars."""
+class AocAwsRestoreDataVars(TypedDict, total=False):
+    """AoC default restore operations playbook data vars."""
 
     cloud_credentials_path: str
     deployment_name: str
-    extra_vars: AocAwsBackupDataExtraVars
+    extra_vars: AocAwsRestoreDataExtraVars
 
 
-class Aoc23AwsBackupDataVars(TypedDict, total=False):
-    """AoC 2.3 backup operations playbook data vars."""
+class Aoc23AwsRestoreDataVars(TypedDict, total=False):
+    """AoC 2.3 restore operations playbook data vars."""
 
     cloud_credentials_path: str
-    extra_vars: AocAwsBackupDataExtraVars
+    extra_vars: AocAwsRestoreDataExtraVars
 
 
-AocAwsBackupAvailableVars = Union[Aoc23AwsBackupDataVars, AocAwsBackupDataVars]
+AocAwsRestoreAvailableVars = Union[Aoc23AwsRestoreDataVars, AocAwsRestoreDataVars]
 
 
-class AocAwsBackup(OperationsBase):
-    """AocAwsBackup Class."""
+class AocAwsRestore(OperationsBase):
+    """AocAwsRestore Class."""
 
     def __init__(
         self,
@@ -56,7 +56,7 @@ class AocAwsBackup(OperationsBase):
         aoc_image_registry_username: str,
         aoc_image_registry_password: str,
         ansible_module: pytest.fixture,
-        command_generator_vars: AocAwsBackupAvailableVars,
+        command_generator_vars: AocAwsRestoreAvailableVars,
     ) -> None:
         """Constructor.
 
@@ -80,7 +80,7 @@ class AocAwsBackup(OperationsBase):
             ansible_module,
         )
 
-        self.command_generator_vars: AocAwsBackupAvailableVars = command_generator_vars
+        self.command_generator_vars: AocAwsRestoreAvailableVars = command_generator_vars
 
         # TODO: Populate the correct command with arguments
         self.command = "command_generator_vars"
@@ -89,7 +89,7 @@ class AocAwsBackup(OperationsBase):
             raise SystemExit(1)
 
     def __validate(self) -> bool:
-        """Validates any necessary input prior to performing backups.
+        """Validates any necessary input prior to performing restores.
 
         :return: the overall result of the validations performed
         """

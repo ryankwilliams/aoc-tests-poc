@@ -1,3 +1,9 @@
+"""Containers module.
+
+This module provides a core class 'container engine' that other
+classes can import/use. Handles the common operations when working
+with containers to reduce duplication.
+"""
 import os
 
 import pytest

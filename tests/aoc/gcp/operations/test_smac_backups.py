@@ -1,10 +1,8 @@
 """Tests validating AoC on GCP backups."""
-import os
-
 import pytest
 
-from tests.lib.operations.backup.gcp import *
-from tests.operations.defaults import *
+from lib.aoc.gcp.operations.backup import *
+from tests.aoc.defaults import *
 
 
 @pytest.fixture
