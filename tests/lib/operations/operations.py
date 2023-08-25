@@ -5,7 +5,9 @@ handle Ansible On Clouds operations using the ops container image.
 """
 from typing import Dict
 
-from aoc_tests.container_engine import ContainerEngine
+import pytest
+
+from tests.lib.container_engine import ContainerEngine
 
 
 class OperationsBase:
@@ -19,6 +21,7 @@ class OperationsBase:
         aoc_ops_image_tag: str,
         aoc_image_registry_username: str,
         aoc_image_registry_password: str,
+        ansible_module: pytest.fixture,
     ) -> None:
         """Constructor.
 
@@ -30,6 +33,7 @@ class OperationsBase:
             the image registry holding aoc operations image
         :param aoc_image_registry_password: the password to authenticate with
             the image registry holding aoc operations image
+        :param ansible_module: the pytest ansible module fixture
         """
         self.cloud: str = cloud
         self.aoc_version: str = aoc_version
@@ -41,9 +45,21 @@ class OperationsBase:
         if not self.__validate():
             raise SystemExit(1)
 
-        self.container_engine: ContainerEngine = ContainerEngine()
+        self.container_engine = ContainerEngine(ansible_module)
+
+        self._command: str = ""
 
         self.setup()
+
+    @property
+    def command(self) -> str:
+        """Returns the command string to run within the command generator vars container."""
+        return self._command
+
+    @command.setter
+    def command(self, value: str) -> None:
+        """Sets the command string value for the command generator vars container."""
+        self._command = value
 
     def __validate(self) -> bool:
         """Validates any necessary input prior to performing backups.
@@ -74,3 +90,11 @@ class OperationsBase:
             self.aoc_image_registry_password,
         )
         self.container_engine.pull_image(self.aoc_ops_image, self.aoc_ops_image_tag)
+
+    def run(self) -> bool:
+        """Initiates/performs backup operation."""
+        self.container_engine.run(
+            f"{self.aoc_ops_image}:{self.aoc_ops_image_tag}",
+            self.command,
+        )
+        return True

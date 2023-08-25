@@ -6,7 +6,9 @@ AoC deployment on GCP cloud.
 from typing import TypedDict
 from typing import Union
 
-from aoc_tests.operations.backup import AocBackup
+import pytest
+
+from tests.lib.operations import OperationsBase
 
 __all__ = [
     "AocGcpBackup",
@@ -39,7 +41,7 @@ class Aoc23GcpBackupDataVars(AocGcpBackupDataVars):
 AocGcpBackupAvailableVars = Union[Aoc23GcpBackupDataVars, AocGcpBackupDataVars]
 
 
-class AocGcpBackup(AocBackup):
+class AocGcpBackup(OperationsBase):
     """AocGcpBackup Class."""
 
     def __init__(
@@ -49,7 +51,8 @@ class AocGcpBackup(AocBackup):
         aoc_ops_image_tag: str,
         aoc_image_registry_username: str,
         aoc_image_registry_password: str,
-        data: AocGcpBackupAvailableVars,
+        ansible_module: pytest.fixture,
+        command_generator_vars: AocGcpBackupAvailableVars,
     ) -> None:
         """Constructor.
 
@@ -60,6 +63,8 @@ class AocGcpBackup(AocBackup):
             the image registry holding aoc operations image
         :param aoc_image_registry_password: the password to authenticate with
             the image registry holding aoc operations image
+        :param ansible_module: the pytest ansible module fixture
+        :param command_generator_vars: the data to provide to aoc operations command generator playbooks
         """
         super().__init__(
             "gcp",
@@ -68,9 +73,13 @@ class AocGcpBackup(AocBackup):
             aoc_ops_image_tag,
             aoc_image_registry_username,
             aoc_image_registry_password,
+            ansible_module,
         )
 
-        self.data: AocGcpBackupAvailableVars = data
+        self.command_generator_vars: AocGcpBackupAvailableVars = command_generator_vars
+
+        # TODO: Populate the correct command with arguments
+        self.command = "command_generator_vars"
 
         if not self.__validate():
             raise SystemExit(1)
