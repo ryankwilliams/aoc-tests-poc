@@ -22,30 +22,26 @@ The code block below provides you with the necessary commands to try out
 the existing tests.
 
 ```shell
-# Setup
-python3 -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
-
-# Prior to running tests, ensure podman service is running, else it will fail
-podman system service -t 0 &
+# Setup (creates python virtual environment, installs packages, starts podman service)
+make setup
 
 # Set the necessary environment variables required by the tests
 export AOC_OPS_IMAGE_REGISTRY_USERNAME=<username>
 export AOC_OPS_IMAGE_REGISTRY_PASSWORD=<password>
 
-# Change directories into tests/
-cd tests
-
 # Test AoC AWS backup operation
-pytest -v -s --ansible-host-pattern=localhost aoc/aws/operations -m aoc_aws_backup --junitxml="aoc_aws_backup_results.xml"
+pytest -v -s --ansible-host-pattern=localhost tests/aoc/aws/operations \
+-m aoc_aws_backup --junitxml="aoc_aws_backup_results.xml"
 
 # Test AoC GCP backup operation
-pytest -v -s --ansible-host-pattern=localhost aoc/gcp/operations -m aoc_gcp_backup --junitxml="aoc_gcp_backup_results.xml"
+pytest -v -s --ansible-host-pattern=localhost tests/aoc/gcp/operations \
+-m aoc_gcp_backup --junitxml="aoc_gcp_backup_results.xml"
 
 # Test AoC AWS restore operation
-pytest -v -s --ansible-host-pattern=localhost aoc/aws/operations -m aoc_aws_restore --junitxml="aoc_aws_restore_results.xml"
+pytest -v -s --ansible-host-pattern=localhost tests/aoc/aws/operations \
+-m aoc_aws_restore --junitxml="aoc_aws_restore_results.xml"
 
 # Test AoC GCP restore operation
-pytest -v -s --ansible-host-pattern=localhost aoc/gcp/operations -m aoc_gcp_restore --junitxml="aoc_gcp_restore_results.xml"
+pytest -v -s --ansible-host-pattern=localhost tests/aoc/gcp/operations \
+-m aoc_gcp_restore --junitxml="aoc_gcp_restore_results.xml"
 ```

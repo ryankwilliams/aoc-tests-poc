@@ -21,8 +21,10 @@ class ContainerEngine:
         """
         self.ansible_module: pytest.fixture = ansible_module
 
-        # TODO: Revise this for other users/container runtime engines
-        os.environ["DOCKER_HOST"] = "unix:///run/user/1000/podman/podman.sock"
+        # TODO: Revise this for other users/container runtime engines (e.g. docker)
+        os.environ[
+            "DOCKER_HOST"
+        ] = f"unix://{os.getenv('XDG_RUNTIME_DIR')}/podman/podman.sock"
 
     def registry_login(self, registry: str, username: str, password: str) -> None:
         """Logins to the registry provided using username/password
