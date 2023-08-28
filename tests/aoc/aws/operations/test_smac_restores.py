@@ -2,25 +2,32 @@
 import pytest
 
 from lib.aoc.aws.operations.restore import *
-from tests.aoc.defaults import *
+from tests.aoc.conftest import AocDefaultOptions
 
 
 @pytest.fixture
-def aoc_aws_restore(ansible_module: pytest.fixture) -> AocAwsRestore:
+def aoc_aws_restore(
+    ansible_module: pytest.fixture,
+    aoc_default_options: AocDefaultOptions,
+) -> AocAwsRestore:
     """Fixture returning aoc aws restore operations."""
     command_generator_vars: AocAwsRestoreAvailableVars = AocAwsRestoreDataVars(
         cloud_credentials_path="todo"
     )
 
-    if aoc_version == "2.3":
+    if aoc_default_options["stack_version"] == "2.3":
         command_generator_vars = Aoc23AwsRestoreDataVars(cloud_credentials_path="todo")
 
     return AocAwsRestore(
-        aoc_version=aoc_version,
-        aoc_ops_image=aoc_ops_image,
-        aoc_ops_image_tag=aoc_ops_image_tag,
-        aoc_image_registry_username=aoc_image_registry_username,
-        aoc_image_registry_password=aoc_image_registry_password,
+        aoc_version=aoc_default_options["stack_version"],
+        aoc_ops_image=aoc_default_options["ops_container_image"],
+        aoc_ops_image_tag=aoc_default_options["ops_container_image_tag"],
+        aoc_image_registry_username=aoc_default_options[
+            "ops_container_image_registry_username"
+        ],
+        aoc_image_registry_password=aoc_default_options[
+            "ops_container_image_registry_password"
+        ],
         ansible_module=ansible_module,
         command_generator_vars=command_generator_vars,
     )

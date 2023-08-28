@@ -8,7 +8,7 @@ from typing import Union
 
 import pytest
 
-from lib.aoc.operations import OperationsBase
+from lib.aoc.ops_container_image import OpsContainerImage
 
 __all__ = [
     "AocAwsRestore",
@@ -45,7 +45,7 @@ class Aoc23AwsRestoreDataVars(TypedDict, total=False):
 AocAwsRestoreAvailableVars = Union[Aoc23AwsRestoreDataVars, AocAwsRestoreDataVars]
 
 
-class AocAwsRestore(OperationsBase):
+class AocAwsRestore(OpsContainerImage):
     """AocAwsRestore Class."""
 
     def __init__(

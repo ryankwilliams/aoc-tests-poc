@@ -5,10 +5,10 @@ classes can import/use. Handles the common operations when working
 with containers to reduce duplication.
 """
 import os
+from typing import Dict
+from typing import List
 
 import pytest
-
-# TODO: Handle return codes from ansible module calls
 
 
 class ContainerEngine:
@@ -26,7 +26,7 @@ class ContainerEngine:
             "DOCKER_HOST"
         ] = f"unix://{os.getenv('XDG_RUNTIME_DIR')}/podman/podman.sock"
 
-    def registry_login(self, registry: str, username: str, password: str) -> None:
+    def registry_login(self, registry: str, username: str, password: str) -> bool:
         """Logins to the registry provided using username/password
 
         :param registry: the registry hostname
@@ -38,30 +38,42 @@ class ContainerEngine:
             username=username,
             password=password,
         )
-        print(result)
+        if "failed" in result.contacted["localhost"]:
+            print(result.contacted["localhost"]["msg"])
+            return False
+        return True
 
-    def pull_image(self, image: str, tag: str) -> None:
+    def pull_image(self, image: str, tag: str) -> bool:
         """Pull the image/tag provided.
 
         :param image: the container image fqdn
         :param tag: the container image tag
         """
-        result = self.ansible_module.podman_image(
-            name=image,
-            tag=tag,
-        )
-        print(result)
+        result = self.ansible_module.docker_image(name=image, tag=tag, source="pull")
+        if "failed" in result.contacted["localhost"]:
+            print(result.contacted["localhost"]["msg"])
+            return False
+        return True
 
-    def run(self, image: str, command: str) -> None:
+    def run(
+        self, image: str, command: str, volumes: List[str], env_vars: Dict[str, str]
+    ) -> bool:
         """Run the container and its provided options.
 
         :param image: the image (w/tag) to start the container from
         :param command: the command to run within the container
+        :param volumes: the volumes to mount into the container
+        :param env_vars: the environment variables to set into the container
         """
         result = self.ansible_module.docker_container(
             name="container",
             image=image,
             command=command,
             detach="false",
+            state="started",
+            volumes=volumes,
+            env=env_vars,
         )
+
         print(result.contacted["localhost"]["container"]["Output"])
+        return result.contacted["localhost"]["status"] == 0

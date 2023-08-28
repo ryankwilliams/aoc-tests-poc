@@ -3,28 +3,29 @@
 This module performs the standard operations for backing up an
 AoC deployment on AWS cloud.
 """
+from typing import List
 from typing import TypedDict
-from typing import Union
 
 import pytest
 
-from lib.aoc.operations import OperationsBase
+from lib.aoc.ops_container_image import OpsContainerImage
 
 __all__ = [
     "AocAwsBackup",
     "AocAwsBackupDataVars",
-    "Aoc23AwsBackupDataVars",
-    "AocAwsBackupAvailableVars",
+    "AocAwsBackupDataExtraVars",
 ]
 
 
 class AocAwsBackupDataExtraVars(TypedDict, total=False):
     """AoC default backup operations playbook data extra vars."""
 
-    aws_backup_iam_role: str
+    aws_backup_iam_role_arn: str
     aws_backup_vault_name: str
     aws_region: str
     aws_s3_bucket: str
+    aws_ssm_bucket_name: str
+    backup_prefix: str
 
 
 class AocAwsBackupDataVars(TypedDict, total=False):
@@ -35,17 +36,7 @@ class AocAwsBackupDataVars(TypedDict, total=False):
     extra_vars: AocAwsBackupDataExtraVars
 
 
-class Aoc23AwsBackupDataVars(TypedDict, total=False):
-    """AoC 2.3 backup operations playbook data vars."""
-
-    cloud_credentials_path: str
-    extra_vars: AocAwsBackupDataExtraVars
-
-
-AocAwsBackupAvailableVars = Union[Aoc23AwsBackupDataVars, AocAwsBackupDataVars]
-
-
-class AocAwsBackup(OperationsBase):
+class AocAwsBackup(OpsContainerImage):
     """AocAwsBackup Class."""
 
     def __init__(
@@ -56,7 +47,7 @@ class AocAwsBackup(OperationsBase):
         aoc_image_registry_username: str,
         aoc_image_registry_password: str,
         ansible_module: pytest.fixture,
-        command_generator_vars: AocAwsBackupAvailableVars,
+        command_generator_vars: AocAwsBackupDataVars,
     ) -> None:
         """Constructor.
 
@@ -80,18 +71,65 @@ class AocAwsBackup(OperationsBase):
             ansible_module,
         )
 
-        self.command_generator_vars: AocAwsBackupAvailableVars = command_generator_vars
+        self.command_generator_vars: AocAwsBackupDataVars = command_generator_vars
+        self.command_generator_setup()
 
-        # TODO: Populate the correct command with arguments
-        self.command = "command_generator_vars"
+    def command_generator_setup(self) -> None:
+        """Performs any setup required to run command generator playbooks."""
+        container_command_args: List[str] = [
+            f'aws_foundation_stack_name={self.command_generator_vars["deployment_name"]}',
+            f'aws_region={self.command_generator_vars["extra_vars"]["aws_region"]}',
+            f'aws_backup_vault_name={self.command_generator_vars["extra_vars"]["aws_backup_vault_name"]}',
+            f'aws_backup_iam_role_arn={self.command_generator_vars["extra_vars"]["aws_backup_iam_role_arn"]}',
+            f'aws_s3_bucket={self.command_generator_vars["extra_vars"]["aws_s3_bucket"]}',
+        ]
 
-        if not self.__validate():
-            raise SystemExit(1)
+        if self.aoc_version != "2.3":
+            container_command_args.extend(
+                [
+                    f'aws_s3_bucket={self.command_generator_vars["extra_vars"]["aws_ssm_bucket_name"]}',
+                    f'backup_prefix={self.command_generator_vars["extra_vars"]["backup_prefix"]}',
+                ]
+            )
 
-    def __validate(self) -> bool:
+        self.container_command_args = container_command_args
+        self.container_command = "redhat.ansible_on_clouds.aws_backup_stack"
+        self.container_env_vars = {
+            "ANSIBLE_CONFIG": "TODO",
+            "DEPLOYMENT_NAME": f'{self.command_generator_vars["deployment_name"]}',
+            "GENERATE_INVENTORY": "true",
+            "PLATFORM": f"{self.cloud.upper()}",
+        }
+
+        self.container_volume_mount = [
+            f'{self.command_generator_vars["cloud_credentials_path"]}:/home/runner/.aws/credentials:ro',
+        ]
+
+    def validate(self) -> bool:
         """Validates any necessary input prior to performing backups.
 
         :return: the overall result of the validations performed
         """
-        # TODO: Implement this/should we validate anything?
-        return True
+        return self.validate_command_generator_vars()
+
+    def validate_command_generator_vars(self) -> bool:
+        """Validate the command generate data vars for backup operations.
+
+        :return: true = passed, false = failed
+        """
+        result: bool = True
+
+        for key, value in self.command_generator_vars.items():
+            if key == "extra_vars":
+                for extra_var_key, extra_var_value in value.items():  # type: ignore
+                    if extra_var_value == "":
+                        print(
+                            f"Command generator var: {extra_var_key} is unset and needs to be set."
+                        )
+                        result = False
+                continue
+            if value == "":
+                print(f"Command generator var: {key} is unset and needs to be set.")
+                result = False
+
+        return result
