@@ -4,14 +4,15 @@ This package contains additional packages/modules "libraries" that
 handle Ansible On Clouds operations using the ops container image.
 """
 from typing import Dict
+from typing import List
 
 import pytest
 
 from lib.containers import ContainerEngine
 
 
-class OperationsBase:
-    """OperationsBase Class."""
+class OpsContainerImage:
+    """OpsContainerImage Class."""
 
     def __init__(
         self,
@@ -47,19 +48,55 @@ class OperationsBase:
 
         self.container_engine = ContainerEngine(ansible_module)
 
-        self._command: str = ""
+        self._container_command: str = ""
+        self._container_command_args: List[str] = []
+        self._container_env_vars: Dict[str, str] = {}
+        self._container_volume_mount: List[str] = []
 
-        self.setup()
+        if not self.setup():
+            raise SystemExit(1)
 
     @property
-    def command(self) -> str:
-        """Returns the command string to run within the command generator vars container."""
-        return self._command
+    def container_command(self) -> str:
+        """Returns the container command string to run within the command generator vars container."""
+        return self._container_command
 
-    @command.setter
-    def command(self, value: str) -> None:
+    @container_command.setter
+    def container_command(self, value: str) -> None:
         """Sets the command string value for the command generator vars container."""
-        self._command = value
+        self._container_command = (
+            f"{value} -e '{' '.join(self.container_command_args)}'"
+        )
+
+    @property
+    def container_command_args(self) -> List[str]:
+        """Returns the container command arguments."""
+        return self._container_command_args
+
+    @container_command_args.setter
+    def container_command_args(self, value: List[str]):
+        """Sets the container command arguments."""
+        self._container_command_args = value
+
+    @property
+    def container_env_vars(self) -> Dict[str, str]:
+        """Returns the container's environment variables to be set."""
+        return self._container_env_vars
+
+    @container_env_vars.setter
+    def container_env_vars(self, value: Dict[str, str]) -> None:
+        """Sets the container's environment variables to be set."""
+        self._container_env_vars = value
+
+    @property
+    def container_volume_mount(self) -> List[str]:
+        """Returns the container's volume mounts."""
+        return self._container_volume_mount
+
+    @container_volume_mount.setter
+    def container_volume_mount(self, value: List[str]):
+        """Sets the container's volume mounts."""
+        self._container_volume_mount = value
 
     def __validate(self) -> bool:
         """Validates any necessary input prior to performing backups.
@@ -82,19 +119,23 @@ class OperationsBase:
 
         return result
 
-    def setup(self) -> None:
+    def setup(self) -> bool:
         """Performs setup operations to perform aoc backups."""
-        self.container_engine.registry_login(
+        login_result: bool = self.container_engine.registry_login(
             self.aoc_ops_image.split("/")[0],
             self.aoc_image_registry_username,
             self.aoc_image_registry_password,
         )
-        self.container_engine.pull_image(self.aoc_ops_image, self.aoc_ops_image_tag)
+        pull_image_result: bool = self.container_engine.pull_image(
+            self.aoc_ops_image, self.aoc_ops_image_tag
+        )
+        return login_result and pull_image_result
 
     def run(self) -> bool:
         """Initiates/performs backup operation."""
-        self.container_engine.run(
-            f"{self.aoc_ops_image}:{self.aoc_ops_image_tag}",
-            self.command,
+        return self.container_engine.run(
+            image=f"{self.aoc_ops_image}:{self.aoc_ops_image_tag}",
+            command=self.container_command,
+            volumes=self.container_volume_mount,
+            env_vars=self.container_env_vars,
         )
-        return True

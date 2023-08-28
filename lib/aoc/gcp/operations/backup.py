@@ -8,7 +8,7 @@ from typing import Union
 
 import pytest
 
-from lib.aoc.operations import OperationsBase
+from lib.aoc.ops_container_image import OpsContainerImage
 
 __all__ = [
     "AocGcpBackup",
@@ -41,7 +41,7 @@ class Aoc23GcpBackupDataVars(AocGcpBackupDataVars):
 AocGcpBackupAvailableVars = Union[Aoc23GcpBackupDataVars, AocGcpBackupDataVars]
 
 
-class AocGcpBackup(OperationsBase):
+class AocGcpBackup(OpsContainerImage):
     """AocGcpBackup Class."""
 
     def __init__(
