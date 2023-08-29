@@ -3,8 +3,10 @@
 This module performs the standard operations for restoring an
 AoC deployment on AWS cloud.
 """
+import typing
+from typing import Dict
+from typing import List
 from typing import TypedDict
-from typing import Union
 
 import pytest
 
@@ -13,18 +15,17 @@ from lib.aoc.ops_container_image import OpsContainerImage
 __all__ = [
     "AocAwsRestore",
     "AocAwsRestoreDataVars",
-    "Aoc23AwsRestoreDataVars",
-    "AocAwsRestoreAvailableVars",
+    "AocAwsRestoreDataExtraVars",
 ]
 
 
 class AocAwsRestoreDataExtraVars(TypedDict, total=False):
     """AoC default restore operations playbook data extra vars."""
 
-    aws_restore_iam_role: str
-    aws_restore_vault_name: str
+    aws_backup_name: str
     aws_region: str
     aws_s3_bucket: str
+    aws_ssm_bucket_name: str
 
 
 class AocAwsRestoreDataVars(TypedDict, total=False):
@@ -33,16 +34,6 @@ class AocAwsRestoreDataVars(TypedDict, total=False):
     cloud_credentials_path: str
     deployment_name: str
     extra_vars: AocAwsRestoreDataExtraVars
-
-
-class Aoc23AwsRestoreDataVars(TypedDict, total=False):
-    """AoC 2.3 restore operations playbook data vars."""
-
-    cloud_credentials_path: str
-    extra_vars: AocAwsRestoreDataExtraVars
-
-
-AocAwsRestoreAvailableVars = Union[Aoc23AwsRestoreDataVars, AocAwsRestoreDataVars]
 
 
 class AocAwsRestore(OpsContainerImage):
@@ -56,7 +47,7 @@ class AocAwsRestore(OpsContainerImage):
         aoc_image_registry_username: str,
         aoc_image_registry_password: str,
         ansible_module: pytest.fixture,
-        command_generator_vars: AocAwsRestoreAvailableVars,
+        command_generator_vars: AocAwsRestoreDataVars,
     ) -> None:
         """Constructor.
 
@@ -80,18 +71,37 @@ class AocAwsRestore(OpsContainerImage):
             ansible_module,
         )
 
-        self.command_generator_vars: AocAwsRestoreAvailableVars = command_generator_vars
+        self.command_generator_vars: AocAwsRestoreDataVars = command_generator_vars
+        self.command_generator_setup()
 
-        # TODO: Populate the correct command with arguments
-        self.command = "command_generator_vars"
+    def command_generator_setup(self) -> None:
+        """Performs any setup required to run command generator playbooks."""
+        container_command_args: List[str] = [
+            f'aws_foundation_stack_name={self.command_generator_vars["deployment_name"]}',
+            f'aws_backup_name={self.command_generator_vars["extra_vars"]["aws_backup_name"]}',
+            f'aws_region={self.command_generator_vars["extra_vars"]["aws_region"]}',
+            f'aws_s3_bucket={self.command_generator_vars["extra_vars"]["aws_s3_bucket"]}',
+            f'aws_ssm_bucket_name={self.command_generator_vars["extra_vars"]["aws_ssm_bucket_name"]}',
+        ]
 
-        if not self.__validate():
-            raise SystemExit(1)
+        self.container_command_args = container_command_args
+        self.container_command = "redhat.ansible_on_clouds.aws_backup_stack"
+        self.container_env_vars = {
+            "ANSIBLE_CONFIG": "TODO",
+            "DEPLOYMENT_NAME": f'{self.command_generator_vars["deployment_name"]}',
+            "GENERATE_INVENTORY": "true",
+            "CHECK_GENERATED_INVENTORY": "false",
+            "PLATFORM": f"{self.cloud.upper()}",
+        }
+        self.container_volume_mount = [
+            f'{self.command_generator_vars["cloud_credentials_path"]}:/home/runner/.aws/credentials:ro',
+        ]
 
-    def __validate(self) -> bool:
-        """Validates any necessary input prior to performing restores.
+    def validate(self) -> bool:
+        """Validates any necessary input prior to performing restore.
 
         :return: the overall result of the validations performed
         """
-        # TODO: Implement this/should we validate anything?
-        return True
+        return self.validate_command_generator_vars(
+            typing.cast(Dict[str, str], self.command_generator_vars)
+        )
