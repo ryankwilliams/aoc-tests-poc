@@ -23,8 +23,8 @@ Run the following commands below to setup your environment to run any tests:
 make setup
 
 # Set the necessary environment variables required by the tests
-export AOC_OPS_IMAGE_REGISTRY_USERNAME=<username>
-export AOC_OPS_IMAGE_REGISTRY_PASSWORD=<password>
+export AOC_OPS_CONTAINER_IMAGE_REGISTRY_USERNAME=<username>
+export AOC_OPS_CONTAINER_IMAGE_REGISTRY_PASSWORD=<password>
 ```
 
 Once you have completed the initial setup commands, you can run tests
