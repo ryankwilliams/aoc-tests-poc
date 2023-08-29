@@ -3,6 +3,8 @@
 This module performs the standard operations for backing up an
 AoC deployment on AWS cloud.
 """
+import typing
+from typing import Dict
 from typing import List
 from typing import TypedDict
 
@@ -87,7 +89,7 @@ class AocAwsBackup(OpsContainerImage):
         if self.aoc_version != "2.3":
             container_command_args.extend(
                 [
-                    f'aws_s3_bucket={self.command_generator_vars["extra_vars"]["aws_ssm_bucket_name"]}',
+                    f'aws_ssm_bucket_name={self.command_generator_vars["extra_vars"]["aws_ssm_bucket_name"]}',
                     f'backup_prefix={self.command_generator_vars["extra_vars"]["backup_prefix"]}',
                 ]
             )
@@ -110,26 +112,6 @@ class AocAwsBackup(OpsContainerImage):
 
         :return: the overall result of the validations performed
         """
-        return self.validate_command_generator_vars()
-
-    def validate_command_generator_vars(self) -> bool:
-        """Validate the command generate data vars for backup operations.
-
-        :return: true = passed, false = failed
-        """
-        result: bool = True
-
-        for key, value in self.command_generator_vars.items():
-            if key == "extra_vars":
-                for extra_var_key, extra_var_value in value.items():  # type: ignore
-                    if extra_var_value == "":
-                        print(
-                            f"Command generator var: {extra_var_key} is unset and needs to be set."
-                        )
-                        result = False
-                continue
-            if value == "":
-                print(f"Command generator var: {key} is unset and needs to be set.")
-                result = False
-
-        return result
+        return self.validate_command_generator_vars(
+            typing.cast(Dict[str, str], self.command_generator_vars)
+        )

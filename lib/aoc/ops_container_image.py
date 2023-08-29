@@ -11,7 +11,34 @@ import pytest
 from lib.containers import ContainerEngine
 
 
-class OpsContainerImage:
+class OpsContainerImageMixin:
+    """OpsContainerImageMixin Class."""
+
+    @staticmethod
+    def validate_command_generator_vars(command_vars: Dict[str, str]) -> bool:
+        """Validate the command generate data vars for backup operations.
+
+        :return: true = passed, false = failed
+        """
+        result: bool = True
+
+        for key, value in command_vars.items():
+            if key == "extra_vars":
+                for extra_var_key, extra_var_value in value.items():  # type: ignore
+                    if extra_var_value == "":
+                        print(
+                            f"Command generator var: {extra_var_key} is unset and needs to be set."
+                        )
+                        result = False
+                continue
+            if value == "":
+                print(f"Command generator var: {key} is unset and needs to be set.")
+                result = False
+
+        return result
+
+
+class OpsContainerImage(OpsContainerImageMixin):
     """OpsContainerImage Class."""
 
     def __init__(
