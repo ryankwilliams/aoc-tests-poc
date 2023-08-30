@@ -8,6 +8,11 @@ from typing import Dict
 from typing import List
 from typing import TypedDict
 
+import botocore.exceptions
+from boto3.session import Session
+from mypy_boto3_s3.client import S3Client
+from mypy_boto3_s3.type_defs import ListObjectsOutputTypeDef
+from mypy_boto3_s3.type_defs import ResponseMetadataTypeDef
 from pytest_ansible.host_manager import BaseHostManager
 
 from lib.aoc.ops_container_image import OpsContainerImage
@@ -16,6 +21,7 @@ __all__ = [
     "AocAwsBackup",
     "AocAwsBackupDataVars",
     "AocAwsBackupDataExtraVars",
+    "AocAwsBackupStackResult",
 ]
 
 
@@ -38,8 +44,26 @@ class AocAwsBackupDataVars(TypedDict, total=False):
     extra_vars: AocAwsBackupDataExtraVars
 
 
+class AocAwsBackupStackResult(TypedDict):
+    """Aoc stack backup results."""
+
+    playbook_output: str
+    playbook_result: bool
+    backup_object_name: str
+
+
 class AocAwsBackup(OpsContainerImage):
-    """AocAwsBackup Class."""
+    """AocAwsBackup class.
+
+    This class handles all operations to perform an aoc on aws stack backup.
+    Perform the following to initiate a backup:
+        1. Instantiate the class constructing an object
+            > aoc_aws_backup = AocAwsBackup(...)
+        2. Call the `setup` method to perform pre backup operations
+            > aoc_aws_backup.setup()
+        3. Call the `backup_stack` method to perform backup
+            > aoc_aws_backup.backup_stack()
+    """
 
     def __init__(
         self,
@@ -72,13 +96,13 @@ class AocAwsBackup(OpsContainerImage):
             aoc_image_registry_password,
             ansible_module,
         )
+        self.ansible_module: BaseHostManager = ansible_module
 
         self.command_generator_vars: AocAwsBackupDataVars = command_generator_vars
-        self.command_generator_setup()
 
     def command_generator_setup(self) -> None:
         """Performs any setup required to run command generator playbooks."""
-        container_command_args: List[str] = [
+        self.container_command_args: List[str] = [
             f'aws_foundation_stack_name={self.command_generator_vars["deployment_name"]}',
             f'aws_region={self.command_generator_vars["extra_vars"]["aws_region"]}',
             f'aws_backup_vault_name={self.command_generator_vars["extra_vars"]["aws_backup_vault_name"]}',
@@ -87,31 +111,95 @@ class AocAwsBackup(OpsContainerImage):
         ]
 
         if self.aoc_version != "2.3":
-            container_command_args.extend(
+            self.container_command_args.extend(
                 [
                     f'aws_ssm_bucket_name={self.command_generator_vars["extra_vars"]["aws_ssm_bucket_name"]}',
                     f'backup_prefix={self.command_generator_vars["extra_vars"]["backup_prefix"]}',
                 ]
             )
 
-        self.container_command_args = container_command_args
         self.container_command = "redhat.ansible_on_clouds.aws_backup_stack"
         self.container_env_vars = {
-            "ANSIBLE_CONFIG": "TODO",
+            "ANSIBLE_CONFIG": "../aws-ansible.cfg",
             "DEPLOYMENT_NAME": f'{self.command_generator_vars["deployment_name"]}',
             "GENERATE_INVENTORY": "true",
             "PLATFORM": f"{self.cloud.upper()}",
         }
-
         self.container_volume_mount = [
             f'{self.command_generator_vars["cloud_credentials_path"]}:/home/runner/.aws/credentials:ro',
         ]
 
-    def validate(self) -> bool:
-        """Validates any necessary input prior to performing backups.
+    def create_s3_bucket(self) -> bool:
+        """Create s3 bucket to store backup files."""
+        result = self.ansible_module.s3_bucket(
+            name=self.command_generator_vars["extra_vars"]["aws_s3_bucket"],
+            state="present",
+        )
+        if "failed" in result.contacted["localhost"]:
+            print(result.contacted["localhost"]["msg"])
+            return False
+        return True
 
-        :return: the overall result of the validations performed
-        """
-        return self.validate_command_generator_vars(
+    def delete_s3_bucket(self) -> bool:
+        """Delete s3 bucket holding backup files."""
+        result = self.ansible_module.s3_bucket(
+            name=self.command_generator_vars["extra_vars"]["aws_s3_bucket"],
+            state="absent",
+        )
+        if "failed" in result.contacted["localhost"]:
+            print(result.contacted["localhost"]["msg"])
+            return False
+        return True
+
+    def get_s3_backup_object(self) -> str:
+        """Gets the stack backup object stored in the s3 bucket."""
+        # TODO: Submit an RFE to playbook to have a final task to write
+        #   the bucket name to an output file for consumption.
+        #   Need to mount new volume into container to fetch file
+        bucket_name: str = self.command_generator_vars["extra_vars"]["aws_s3_bucket"]
+
+        s3_client: S3Client = Session().client("s3")
+
+        try:
+            head_bucket_response: ResponseMetadataTypeDef = s3_client.head_bucket(
+                Bucket=bucket_name
+            )
+        except botocore.exceptions.ClientError as e:
+            print(
+                f'Unable to locate bucket {bucket_name}, server message: {e.response["Error"]["Message"]}'
+            )
+            return ""
+
+        bucket_objects: ListObjectsOutputTypeDef = s3_client.list_objects_v2(
+            Bucket=bucket_name, Delimiter="/"
+        )
+
+        return str(bucket_objects["CommonPrefixes"][-1]["Prefix"].strip("/"))
+
+    def setup(self) -> bool:
+        """Performs necessary setup tasks prior to issuing backup."""
+        result: bool = True
+        self.command_generator_setup()
+
+        if self.validate_command_generator_vars(
             typing.cast(Dict[str, str], self.command_generator_vars)
+        ):
+            result = self.create_s3_bucket()
+        return result
+
+    def backup_stack(self) -> AocAwsBackupStackResult:
+        """Performs stack backup."""
+        backup_object_name: str = ""
+
+        output, result = self.run_container(
+            name=f'{self.command_generator_vars["deployment_name"]}-backup-stack'
+        )
+
+        if result:
+            backup_object_name = self.get_s3_backup_object()
+
+        return AocAwsBackupStackResult(
+            backup_object_name=backup_object_name,
+            playbook_output=output,
+            playbook_result=result,
         )

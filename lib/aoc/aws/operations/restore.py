@@ -16,13 +16,18 @@ __all__ = [
     "AocAwsRestore",
     "AocAwsRestoreDataVars",
     "AocAwsRestoreDataExtraVars",
+    "AocAwsRestoreStackResult",
 ]
 
 
 class AocAwsRestoreDataExtraVars(TypedDict, total=False):
     """AoC default restore operations playbook data extra vars."""
 
-    aws_backup_name: str
+    # aws_backup_iam_role_arn: str  # optional
+    aws_backup_name: str  # backup object returned from backup playbook
+    # aws_backup_restore_point_arn: str  # optional
+    # aws_backup_vault_name: str  # optional
+    # aws_rds_db_snapshot_arn: str  # optional
     aws_region: str
     aws_s3_bucket: str
     aws_ssm_bucket_name: str
@@ -34,6 +39,13 @@ class AocAwsRestoreDataVars(TypedDict, total=False):
     cloud_credentials_path: str
     deployment_name: str
     extra_vars: AocAwsRestoreDataExtraVars
+
+
+class AocAwsRestoreStackResult(TypedDict):
+    """AoC stack restore results."""
+
+    playbook_output: str
+    playbook_result: bool
 
 
 class AocAwsRestore(OpsContainerImage):
@@ -72,7 +84,6 @@ class AocAwsRestore(OpsContainerImage):
         )
 
         self.command_generator_vars: AocAwsRestoreDataVars = command_generator_vars
-        self.command_generator_setup()
 
     def command_generator_setup(self) -> None:
         """Performs any setup required to run command generator playbooks."""
@@ -85,9 +96,9 @@ class AocAwsRestore(OpsContainerImage):
         ]
 
         self.container_command_args = container_command_args
-        self.container_command = "redhat.ansible_on_clouds.aws_backup_stack"
+        self.container_command = "redhat.ansible_on_clouds.aws_restore_stack"
         self.container_env_vars = {
-            "ANSIBLE_CONFIG": "TODO",
+            "ANSIBLE_CONFIG": "../aws-ansible.cfg",
             "DEPLOYMENT_NAME": f'{self.command_generator_vars["deployment_name"]}',
             "GENERATE_INVENTORY": "true",
             "CHECK_GENERATED_INVENTORY": "false",
@@ -97,11 +108,19 @@ class AocAwsRestore(OpsContainerImage):
             f'{self.command_generator_vars["cloud_credentials_path"]}:/home/runner/.aws/credentials:ro',
         ]
 
-    def validate(self) -> bool:
-        """Validates any necessary input prior to performing restore.
-
-        :return: the overall result of the validations performed
-        """
+    def setup(self) -> bool:
+        """Performs necessary setup tasks prior to issuing stack restore."""
+        self.command_generator_setup()
         return self.validate_command_generator_vars(
             typing.cast(Dict[str, str], self.command_generator_vars)
+        )
+
+    def restore_stack(self) -> AocAwsRestoreStackResult:
+        """Performs stack restore."""
+        output, result = self.run_container(
+            name=f'{self.command_generator_vars["deployment_name"]}-restore-stack'
+        )
+        return AocAwsRestoreStackResult(
+            playbook_output=output,
+            playbook_result=result,
         )
