@@ -5,9 +5,11 @@ from pytest_ansible.host_manager import BaseHostManager
 from lib.aoc.aws.operations.backup import AocAwsBackup
 from lib.aoc.aws.operations.backup import AocAwsBackupDataExtraVars
 from lib.aoc.aws.operations.backup import AocAwsBackupDataVars
+from lib.aoc.aws.operations.backup import AocAwsBackupStackResult
 from lib.aoc.aws.operations.restore import AocAwsRestore
 from lib.aoc.aws.operations.restore import AocAwsRestoreDataExtraVars
 from lib.aoc.aws.operations.restore import AocAwsRestoreDataVars
+from lib.aoc.aws.operations.restore import AocAwsRestoreStackResult
 from tests.aoc.aws.conftest import AocAwsDefaultOptions
 from tests.aoc.aws.operations.conftest import AocAwsBackupDefaultOptions
 from tests.aoc.aws.operations.conftest import AocAwsRestoreDefaultOptions
@@ -15,7 +17,7 @@ from tests.aoc.conftest import AocDefaultOptions
 
 
 @pytest.fixture  # type: ignore
-def aoc_aws_backup(
+def aoc_aws_backup_stack(
     ansible_module: BaseHostManager,
     aoc_default_options: AocDefaultOptions,
     aoc_aws_default_options: AocAwsDefaultOptions,
@@ -91,16 +93,57 @@ def aoc_aws_restore(
     )
 
 
-@pytest.mark.aws
-@pytest.mark.operations
-@pytest.mark.aoc_aws_backup_restore
-class TestAoCAwsBackupRestore:
-    @pytest.mark.aoc_aws_backup  # type: ignore
-    def test_backup(self, aoc_aws_backup: AocAwsBackup) -> None:
-        assert aoc_aws_backup.validate()
-        assert aoc_aws_backup.run()
+@pytest.mark.aoc_aws_backup_restore_stack
+class TestAoCAwsStackBackupRestore:
+    """Test suite covering backup/restore operations for an AAP stack."""
 
-    @pytest.mark.aoc_aws_restore  # type: ignore
-    def test_restore(self, aoc_aws_restore: AocAwsRestore) -> None:
-        assert aoc_aws_restore.validate()
-        assert aoc_aws_restore.run()
+    # TODO:
+    #   1. Remove backup files (should happen pass or fail)
+    #   2. Remove s3 bucket (should happen pass or fail)
+
+    @pytest.mark.aoc_aws_backup_stack  # type: ignore
+    def test_backup_stack(self, aoc_aws_backup_stack: AocAwsBackup) -> None:
+        """Test verifies a stack can be backed up using the ops container image.
+
+        Test procedure:
+            1. Validate registry.redhat.io authentication/pull ops container image
+            2. Validate required test data for backup playbook is defined
+            3. Generate the ops backup playbook extra vars
+            4. Run ops container targeting backup playbook w/extra vars
+            5. Get the stack backup name to be used for restoring the stack
+        Expected results:
+            1. Ops container backup playbook finishes successfully
+            2. Verify backup object exists in the s3 bucket
+            3. Verify the backup object name is in the playbook output
+        """
+        assert aoc_aws_backup_stack.setup()
+
+        stack_backup_results: AocAwsBackupStackResult = (
+            aoc_aws_backup_stack.backup_stack()
+        )
+        assert stack_backup_results["playbook_result"]
+        assert (
+            stack_backup_results["backup_object_name"]
+            in stack_backup_results["playbook_output"]
+        )
+
+    @pytest.mark.aoc_aws_restore_stack  # type: ignore
+    def test_restore_stack(self, aoc_aws_restore: AocAwsRestore) -> None:
+        """Test verifies a stack can be restored from a provided backup file.
+
+        Test procedure:
+            1. Validate registry.redhat.io authentication/pull ops container image
+            2. Validate required test data for restore playbook is defined
+            3. Generate the ops restore playbook extra vars
+            4. Run ops container targeting restore playbook w/extra vars
+            5. Verify stack is operational/accessible
+        Expected results:
+            1. Ops container backup playbook finishes successfully
+            2. Access to the AoC stack is working as prior to the restore
+        """
+        assert aoc_aws_restore.setup()
+        stack_restore_results: AocAwsRestoreStackResult = (
+            aoc_aws_restore.restore_stack()
+        )
+        assert stack_restore_results["playbook_result"]
+        # TODO: Determine post checks to verify restore

@@ -5,6 +5,7 @@ handle Ansible On Clouds operations using the ops container image.
 """
 from typing import Dict
 from typing import List
+from typing import Tuple
 
 from pytest_ansible.host_manager import BaseHostManager
 
@@ -80,7 +81,18 @@ class OpsContainerImage(OpsContainerImageMixin):
         self._container_env_vars: Dict[str, str] = {}
         self._container_volume_mount: List[str] = []
 
-        if not self.setup():
+        # Authenticate with ops container image registry
+        if not self.container_engine.registry_login(
+            self.aoc_ops_image.split("/")[0],
+            self.aoc_image_registry_username,
+            self.aoc_image_registry_password,
+        ):
+            raise SystemExit(1)
+
+        # Pull ops container image
+        if not self.container_engine.pull_image(
+            self.aoc_ops_image, self.aoc_ops_image_tag
+        ):
             raise SystemExit(1)
 
     @property
@@ -146,21 +158,18 @@ class OpsContainerImage(OpsContainerImageMixin):
 
         return result
 
-    def setup(self) -> bool:
-        """Performs setup operations to perform aoc backups."""
-        login_result: bool = self.container_engine.registry_login(
-            self.aoc_ops_image.split("/")[0],
-            self.aoc_image_registry_username,
-            self.aoc_image_registry_password,
-        )
-        pull_image_result: bool = self.container_engine.pull_image(
-            self.aoc_ops_image, self.aoc_ops_image_tag
-        )
-        return login_result and pull_image_result
-
     def run(self) -> bool:
-        """Initiates/performs backup operation."""
+        """Maintain backwards compatibility with existing tests invoking run()."""
+        # TODO: Deprecate this, each operation class should implement run()
+        output: str
+        result: bool
+        output, result = self.run_container("container")
+        return result
+
+    def run_container(self, name: str) -> Tuple[str, bool]:
+        """Runs the ops container with necessary input."""
         return self.container_engine.run(
+            name=name,
             image=f"{self.aoc_ops_image}:{self.aoc_ops_image_tag}",
             command=self.container_command,
             volumes=self.container_volume_mount,

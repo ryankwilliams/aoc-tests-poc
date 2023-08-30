@@ -7,6 +7,7 @@ with containers to reduce duplication.
 import typing
 from typing import Dict
 from typing import List
+from typing import Tuple
 
 from pytest_ansible.host_manager import BaseHostManager
 
@@ -51,8 +52,13 @@ class ContainerEngine:
         return True
 
     def run(
-        self, image: str, command: str, volumes: List[str], env_vars: Dict[str, str]
-    ) -> bool:
+        self,
+        name: str,
+        image: str,
+        command: str,
+        volumes: List[str],
+        env_vars: Dict[str, str],
+    ) -> Tuple[str, bool]:
         """Run the container and its provided options.
 
         :param image: the image (w/tag) to start the container from
@@ -61,7 +67,7 @@ class ContainerEngine:
         :param env_vars: the environment variables to set into the container
         """
         result = self.ansible_module.docker_container(
-            name="container",
+            name=name,
             image=image,
             command=command,
             detach="false",
@@ -70,5 +76,12 @@ class ContainerEngine:
             env=env_vars,
         )
 
-        print(result.contacted["localhost"]["container"]["Output"])
-        return typing.cast(int, result.contacted["localhost"]["status"]) == 0
+        playbook_output: str = result.contacted["localhost"]["container"]["Output"]
+        print(playbook_output)
+
+        self.ansible_module.docker_container(name=name, state="absent")
+
+        return (
+            playbook_output,
+            typing.cast(int, result.contacted["localhost"]["status"]) == 0,
+        )

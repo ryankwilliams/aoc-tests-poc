@@ -96,10 +96,10 @@ def pytest_addoption(parser: Parser) -> None:
         )
 
     parser.addoption(
-        f"--{AOC_AWS_RESTORE_PREFIX_OPTION}_backup_name",
+        f"--{AOC_AWS_RESTORE_PREFIX_OPTION}-backup-name",
         action="store",
         default=os.getenv(
-            f"{AOC_AWS_BACKUP_PREFIX_OPTION.upper().replace('-', '_')}_BACKUP_NAME"
+            f"{AOC_AWS_RESTORE_PREFIX_OPTION.upper().replace('-', '_')}_BACKUP_NAME"
         ),
         help="The backup folder name stored in S3 bucket",
     )
