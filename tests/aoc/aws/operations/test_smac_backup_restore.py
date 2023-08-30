@@ -1,8 +1,12 @@
 """Tests validating AoC on AWS backup/restore."""
 import pytest
 
-from lib.aoc.aws.operations.backup import *
-from lib.aoc.aws.operations.restore import *
+from lib.aoc.aws.operations.backup import AocAwsBackup
+from lib.aoc.aws.operations.backup import AocAwsBackupDataExtraVars
+from lib.aoc.aws.operations.backup import AocAwsBackupDataVars
+from lib.aoc.aws.operations.restore import AocAwsRestore
+from lib.aoc.aws.operations.restore import AocAwsRestoreDataExtraVars
+from lib.aoc.aws.operations.restore import AocAwsRestoreDataVars
 from tests.aoc.aws.conftest import AocAwsDefaultOptions
 from tests.aoc.aws.operations.conftest import AocAwsBackupDefaultOptions
 from tests.aoc.aws.operations.conftest import AocAwsRestoreDefaultOptions
