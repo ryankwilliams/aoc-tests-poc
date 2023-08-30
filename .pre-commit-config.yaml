@@ -16,6 +16,10 @@ repos:
   hooks:
   - id: reorder-python-imports
     args: [--py3-plus]
+- repo: https://github.com/hadialqattan/pycln
+  rev: v2.2.2
+  hooks:
+  - id: pycln
 - repo: https://github.com/asottile/pyupgrade
   rev: v3.4.0
   hooks:
