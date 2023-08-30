@@ -3,8 +3,9 @@
 This module performs the standard operations for backing up an
 AoC deployment on GCP cloud.
 """
+import typing
+from typing import Dict
 from typing import TypedDict
-from typing import Union
 
 import pytest
 
@@ -13,8 +14,6 @@ from lib.aoc.ops_container_image import OpsContainerImage
 __all__ = [
     "AocGcpRestore",
     "AocGcpRestoreDataVars",
-    "Aoc23GcpRestoreDataVars",
-    "AocGcpRestoreAvailableVars",
 ]
 
 
@@ -32,15 +31,6 @@ class AocGcpRestoreDataVars(TypedDict, total=False):
     todo: str
 
 
-class Aoc23GcpRestoreDataVars(AocGcpRestoreDataVars):
-    """AoC 2.3 gcp restore operations playbook data vars."""
-
-    pass
-
-
-AocGcpRestoreAvailableVars = Union[Aoc23GcpRestoreDataVars, AocGcpRestoreDataVars]
-
-
 class AocGcpRestore(OpsContainerImage):
     """AocGcpRestore Class."""
 
@@ -52,7 +42,7 @@ class AocGcpRestore(OpsContainerImage):
         aoc_image_registry_username: str,
         aoc_image_registry_password: str,
         ansible_module: pytest.fixture,
-        command_generator_vars: AocGcpRestoreAvailableVars,
+        command_generator_vars: AocGcpRestoreDataVars,
     ) -> None:
         """Constructor.
 
@@ -76,18 +66,19 @@ class AocGcpRestore(OpsContainerImage):
             ansible_module,
         )
 
-        self.command_generator_vars: AocGcpRestoreAvailableVars = command_generator_vars
+        self.command_generator_vars: AocGcpRestoreDataVars = command_generator_vars
+        self.command_generator_setup()
 
-        # TODO: Populate the correct command with arguments
-        self.command = "command_generator_vars"
+    def command_generator_setup(self) -> None:
+        """Performs any setup required to run command generator playbooks."""
+        # TODO: Implementation
+        self.container_command = "command_generator_vars"
 
-        if not self.__validate():
-            raise SystemExit(1)
-
-    def __validate(self) -> bool:
+    def validate(self) -> bool:
         """Validates any necessary input prior to performing restores.
 
         :return: the overall result of the validations performed
         """
-        # TODO: Implement this/should we validate anything?
-        return True
+        return self.validate_command_generator_vars(
+            typing.cast(Dict[str, str], self.command_generator_vars)
+        )
