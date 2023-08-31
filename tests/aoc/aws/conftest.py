@@ -7,9 +7,10 @@ import os
 from typing import TypedDict
 
 import pytest
+from _pytest.config.argparsing import Parser
 
 
-def pytest_addoption(parser) -> None:
+def pytest_addoption(parser: Parser) -> None:
     """Handles setting up options that are applicable to aoc aws."""
     parser.addoption(
         "--aoc-aws-credentials-path",
@@ -33,8 +34,8 @@ class AocAwsDefaultOptions(TypedDict):
     region: str
 
 
-@pytest.fixture
-def aoc_aws_default_options(request) -> AocAwsDefaultOptions:
+@pytest.fixture  # type: ignore
+def aoc_aws_default_options(request: pytest.FixtureRequest) -> AocAwsDefaultOptions:
     """AoC aws tests default pytest options fixture.
 
     A fixture providing default options that can be used by any

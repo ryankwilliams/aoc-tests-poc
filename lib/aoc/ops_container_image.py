@@ -6,7 +6,7 @@ handle Ansible On Clouds operations using the ops container image.
 from typing import Dict
 from typing import List
 
-import pytest
+from pytest_ansible.host_manager import BaseHostManager
 
 from lib.containers import ContainerEngine
 
@@ -49,7 +49,7 @@ class OpsContainerImage(OpsContainerImageMixin):
         aoc_ops_image_tag: str,
         aoc_image_registry_username: str,
         aoc_image_registry_password: str,
-        ansible_module: pytest.fixture,
+        ansible_module: BaseHostManager,
     ) -> None:
         """Constructor.
 
@@ -101,7 +101,7 @@ class OpsContainerImage(OpsContainerImageMixin):
         return self._container_command_args
 
     @container_command_args.setter
-    def container_command_args(self, value: List[str]):
+    def container_command_args(self, value: List[str]) -> None:
         """Sets the container command arguments."""
         self._container_command_args = value
 
@@ -121,7 +121,7 @@ class OpsContainerImage(OpsContainerImageMixin):
         return self._container_volume_mount
 
     @container_volume_mount.setter
-    def container_volume_mount(self, value: List[str]):
+    def container_volume_mount(self, value: List[str]) -> None:
         """Sets the container's volume mounts."""
         self._container_volume_mount = value
 

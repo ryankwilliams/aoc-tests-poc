@@ -7,12 +7,13 @@ import os
 from typing import TypedDict
 
 import pytest
+from _pytest.config.argparsing import Parser
 
 AOC_AWS_BACKUP_PREFIX_OPTION: str = "aoc-aws-backup"
 AOC_AWS_RESTORE_PREFIX_OPTION: str = "aoc-aws-restore"
 
 
-def pytest_addoption(parser) -> None:
+def pytest_addoption(parser: Parser) -> None:
     """Handles setting up options that are applicable to aoc aws."""
 
     parser.addoption(
@@ -122,8 +123,10 @@ class AocAwsRestoreDefaultOptions(TypedDict):
     backup_ssm_bucket_name: str
 
 
-@pytest.fixture
-def aoc_aws_backup_default_options(request) -> AocAwsBackupDefaultOptions:
+@pytest.fixture  # type: ignore
+def aoc_aws_backup_default_options(
+    request: pytest.FixtureRequest,
+) -> AocAwsBackupDefaultOptions:
     """AoC aws backup tests default pytest options fixture.
 
     A fixture providing default options that can be used by any
@@ -148,8 +151,10 @@ def aoc_aws_backup_default_options(request) -> AocAwsBackupDefaultOptions:
     )
 
 
-@pytest.fixture
-def aoc_aws_restore_default_options(request) -> AocAwsRestoreDefaultOptions:
+@pytest.fixture  # type: ignore
+def aoc_aws_restore_default_options(
+    request: pytest.FixtureRequest,
+) -> AocAwsRestoreDefaultOptions:
     """AoC aws restore tests default pytest options fixture.
 
     A fixture providing default options that can be used by any
