@@ -19,13 +19,10 @@ python-venv-setup:
 	python3 -m venv venv
 	source venv/bin/activate && pip install -r requirements.txt
 
-podman-start-service:
-	podman system service -t 0 &
-
 collection-install:
 	ansible-galaxy collection install -r requirements.yml --force
 
-setup: python-venv-setup collection-install podman-start-service
+setup: python-venv-setup collection-install
 
 pre-commit:
 	pre-commit run --all-files --verbose --show-diff-on-failure
