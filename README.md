@@ -19,7 +19,7 @@ All of these will be coming soon!
 Run the following commands below to setup your environment to run any tests:
 
 ```shell
-# Setup (creates python virtual environment, installs packages, starts podman service)
+# Setup (creates python virtual environment, installs packages)
 make setup
 
 # Set the necessary environment variables required by the tests

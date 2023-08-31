@@ -4,7 +4,6 @@ This module provides a core class 'container engine' that other
 classes can import/use. Handles the common operations when working
 with containers to reduce duplication.
 """
-import os
 import typing
 from typing import Dict
 from typing import List
@@ -21,11 +20,6 @@ class ContainerEngine:
         :param ansible_module: the pytest ansible module fixture
         """
         self.ansible_module: BaseHostManager = ansible_module
-
-        # TODO: Revise this for other users/container runtime engines (e.g. docker)
-        os.environ[
-            "DOCKER_HOST"
-        ] = f"unix://{os.getenv('XDG_RUNTIME_DIR')}/podman/podman.sock"
 
     def registry_login(self, registry: str, username: str, password: str) -> bool:
         """Logins to the registry provided using username/password
