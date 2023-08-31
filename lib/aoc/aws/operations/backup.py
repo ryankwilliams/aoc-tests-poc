@@ -8,7 +8,7 @@ from typing import Dict
 from typing import List
 from typing import TypedDict
 
-import pytest
+from pytest_ansible.host_manager import BaseHostManager
 
 from lib.aoc.ops_container_image import OpsContainerImage
 
@@ -48,7 +48,7 @@ class AocAwsBackup(OpsContainerImage):
         aoc_ops_image_tag: str,
         aoc_image_registry_username: str,
         aoc_image_registry_password: str,
-        ansible_module: pytest.fixture,
+        ansible_module: BaseHostManager,
         command_generator_vars: AocAwsBackupDataVars,
     ) -> None:
         """Constructor.

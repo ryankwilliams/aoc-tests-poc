@@ -1,5 +1,6 @@
 """Tests validating AoC on AWS backup/restore."""
 import pytest
+from pytest_ansible.host_manager import BaseHostManager
 
 from lib.aoc.aws.operations.backup import AocAwsBackup
 from lib.aoc.aws.operations.backup import AocAwsBackupDataExtraVars
@@ -13,9 +14,9 @@ from tests.aoc.aws.operations.conftest import AocAwsRestoreDefaultOptions
 from tests.aoc.conftest import AocDefaultOptions
 
 
-@pytest.fixture
+@pytest.fixture  # type: ignore
 def aoc_aws_backup(
-    ansible_module: pytest.fixture,
+    ansible_module: BaseHostManager,
     aoc_default_options: AocDefaultOptions,
     aoc_aws_default_options: AocAwsDefaultOptions,
     aoc_aws_backup_default_options: AocAwsBackupDefaultOptions,
@@ -54,7 +55,7 @@ def aoc_aws_backup(
     )
 
 
-@pytest.fixture
+@pytest.fixture  # type: ignore
 def aoc_aws_restore(
     ansible_module: pytest.fixture,
     aoc_default_options: AocDefaultOptions,
@@ -94,12 +95,12 @@ def aoc_aws_restore(
 @pytest.mark.operations
 @pytest.mark.aoc_aws_backup_restore
 class TestAoCAwsBackupRestore:
-    @pytest.mark.aoc_aws_backup
+    @pytest.mark.aoc_aws_backup  # type: ignore
     def test_backup(self, aoc_aws_backup: AocAwsBackup) -> None:
         assert aoc_aws_backup.validate()
         assert aoc_aws_backup.run()
 
-    @pytest.mark.aoc_aws_restore
+    @pytest.mark.aoc_aws_restore  # type: ignore
     def test_restore(self, aoc_aws_restore: AocAwsRestore) -> None:
         assert aoc_aws_restore.validate()
         assert aoc_aws_restore.run()

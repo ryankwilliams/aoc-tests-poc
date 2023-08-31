@@ -5,21 +5,22 @@ classes can import/use. Handles the common operations when working
 with containers to reduce duplication.
 """
 import os
+import typing
 from typing import Dict
 from typing import List
 
-import pytest
+from pytest_ansible.host_manager import BaseHostManager
 
 
 class ContainerEngine:
     """ContainerEngine class."""
 
-    def __init__(self, ansible_module: pytest.fixture) -> None:
+    def __init__(self, ansible_module: BaseHostManager) -> None:
         """Constructor.
 
         :param ansible_module: the pytest ansible module fixture
         """
-        self.ansible_module: pytest.fixture = ansible_module
+        self.ansible_module: BaseHostManager = ansible_module
 
         # TODO: Revise this for other users/container runtime engines (e.g. docker)
         os.environ[
@@ -76,4 +77,4 @@ class ContainerEngine:
         )
 
         print(result.contacted["localhost"]["container"]["Output"])
-        return result.contacted["localhost"]["status"] == 0
+        return typing.cast(int, result.contacted["localhost"]["status"]) == 0

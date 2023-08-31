@@ -7,9 +7,10 @@ import os
 from typing import TypedDict
 
 import pytest
+from _pytest.config.argparsing import Parser
 
 
-def pytest_addoption(parser) -> None:
+def pytest_addoption(parser: Parser) -> None:
     """Handles setting up options that are applicable to all tests."""
     parser.addoption(
         "--aoc-version",
@@ -77,7 +78,7 @@ class AocDefaultOptions(TypedDict):
     stack_version: str
 
 
-@pytest.fixture
+@pytest.fixture  # type: ignore
 def aoc_default_options(request) -> AocDefaultOptions:
     """AoC tests default pytest options fixture.
 
