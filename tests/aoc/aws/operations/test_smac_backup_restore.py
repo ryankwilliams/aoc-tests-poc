@@ -58,7 +58,7 @@ def aoc_aws_backup_stack(
 
 
 @pytest.fixture  # type: ignore
-def aoc_aws_restore(
+def aoc_aws_restore_stack(
     ansible_module: pytest.fixture,
     aoc_default_options: AocDefaultOptions,
     aoc_aws_default_options: AocAwsDefaultOptions,
@@ -128,7 +128,7 @@ class TestAoCAwsStackBackupRestore:
         )
 
     @pytest.mark.aoc_aws_restore_stack  # type: ignore
-    def test_restore_stack(self, aoc_aws_restore: AocAwsRestore) -> None:
+    def test_restore_stack(self, aoc_aws_restore_stack: AocAwsRestore) -> None:
         """Test verifies a stack can be restored from a provided backup file.
 
         Test procedure:
@@ -141,9 +141,9 @@ class TestAoCAwsStackBackupRestore:
             1. Ops container backup playbook finishes successfully
             2. Access to the AoC stack is working as prior to the restore
         """
-        assert aoc_aws_restore.setup()
+        assert aoc_aws_restore_stack.setup()
         stack_restore_results: AocAwsRestoreStackResult = (
-            aoc_aws_restore.restore_stack()
+            aoc_aws_restore_stack.restore_stack()
         )
         assert stack_restore_results["playbook_result"]
         # TODO: Determine post checks to verify restore
