@@ -4,9 +4,7 @@ This module contains commonly used code across all test modules.
 Majority of the functions here will be pytest fixtures.
 """
 import os
-from typing import TypedDict
 
-import pytest
 from _pytest.config.argparsing import Parser
 
 
@@ -24,24 +22,4 @@ def pytest_addoption(parser: Parser) -> None:
         action="store",
         default=os.getenv("AOC_AWS_REGION", ""),
         help="AWS region",
-    )
-
-
-class AocAwsDefaultOptions(TypedDict):
-    """Aoc aws default options typed dict."""
-
-    credentials_path: str
-    region: str
-
-
-@pytest.fixture  # type: ignore
-def aoc_aws_default_options(request: pytest.FixtureRequest) -> AocAwsDefaultOptions:
-    """AoC aws tests default pytest options fixture.
-
-    A fixture providing default options that can be used by any
-    AoC aws tests.
-    """
-    return AocAwsDefaultOptions(
-        credentials_path=request.config.getoption("aoc_aws_credentials_path"),
-        region=request.config.getoption("aoc_aws_region"),
     )
