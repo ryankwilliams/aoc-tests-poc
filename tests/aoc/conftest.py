@@ -4,9 +4,7 @@ This module contains commonly used code across all test modules.
 Majority of the functions here will be pytest fixtures.
 """
 import os
-from typing import TypedDict
 
-import pytest
 from _pytest.config.argparsing import Parser
 
 
@@ -64,36 +62,4 @@ def pytest_addoption(parser: Parser) -> None:
         action="store",
         default=os.getenv("AOC_STACK_DEPLOYMENT_NAME", ""),
         help="AoC stack deployment name",
-    )
-
-
-class AocDefaultOptions(TypedDict):
-    """AoC default options typed dict."""
-
-    ops_container_image: str
-    ops_container_image_tag: str
-    ops_container_image_registry_username: str
-    ops_container_image_registry_password: str
-    stack_deployment_name: str
-    stack_version: str
-
-
-@pytest.fixture  # type: ignore
-def aoc_default_options(request) -> AocDefaultOptions:
-    """AoC tests default pytest options fixture.
-
-    A fixture providing default options that can be used by
-    any AoC tests.
-    """
-    return AocDefaultOptions(
-        ops_container_image=request.config.getoption("aoc_ops_container_image"),
-        ops_container_image_tag=request.config.getoption("aoc_ops_container_image_tag"),
-        ops_container_image_registry_username=request.config.getoption(
-            "aoc_ops_container_image_registry_username"
-        ),
-        ops_container_image_registry_password=request.config.getoption(
-            "aoc_ops_container_image_registry_password"
-        ),
-        stack_deployment_name=request.config.getoption("aoc_stack_deployment_name"),
-        stack_version=request.config.getoption("aoc_version"),
     )

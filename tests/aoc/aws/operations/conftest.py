@@ -4,63 +4,44 @@ This module contains commonly used code across all test modules.
 Majority of the functions here will be pytest fixtures.
 """
 import os
-from typing import TypedDict
 
-import pytest
 from _pytest.config.argparsing import Parser
-
-AOC_AWS_BACKUP_PREFIX_OPTION: str = "aoc-aws-backup"
-AOC_AWS_RESTORE_PREFIX_OPTION: str = "aoc-aws-restore"
 
 
 def pytest_addoption(parser: Parser) -> None:
     """Handles setting up options that are applicable to aoc aws."""
 
     parser.addoption(
-        f"--{AOC_AWS_BACKUP_PREFIX_OPTION}-iam-role-arn",
+        "--aoc-aws-backup-iam-role-arn",
         action="store",
-        default=os.getenv(
-            f"{AOC_AWS_BACKUP_PREFIX_OPTION.upper().replace('-', '_')}_IAM_ROLE_ARN", ""
-        ),
+        default=os.getenv("AOC_AWS_BACKUP_IAM_ROLE_ARN", ""),
         help="ARN that has permissions to perform backup operations",
     )
 
     parser.addoption(
-        f"--{AOC_AWS_BACKUP_PREFIX_OPTION}-vault-name",
+        "--aoc-aws-backup-vault-name",
         action="store",
-        default=os.getenv(
-            f"{AOC_AWS_BACKUP_PREFIX_OPTION.upper().replace('-', '_')}_VAULT_NAME",
-            "Default",
-        ),
+        default=os.getenv("AOC_AWS_BACKUP_VAULT_NAME", "Default"),
         help="Name of backup vault holding efs recovery points",
     )
 
     parser.addoption(
-        f"--{AOC_AWS_BACKUP_PREFIX_OPTION}-prefix",
+        "--aoc-aws-backup-prefix",
         action="store",
-        default=os.getenv(
-            f"{AOC_AWS_BACKUP_PREFIX_OPTION.upper().replace('-', '_')}_PREFIX",
-            "aoc-backup",
-        ),
+        default=os.getenv("AOC_AWS_BACKUP_PREFIX", "aoc-backup"),
         help="Prefix to add to the backup name",
     )
 
     for option in [
         {
-            "name": f"--{AOC_AWS_BACKUP_PREFIX_OPTION}-s3-bucket",
-            "default": os.getenv(
-                f"{AOC_AWS_BACKUP_PREFIX_OPTION.upper().replace('-', '_')}_S3_BUCKET",
-                "",
-            ),
+            "name": "--aoc-aws-backup-s3-bucket",
+            "default": os.getenv("AOC_AWS_BACKUP_S3_BUCKET", ""),
             "help": "S3 bucket name where to store backup files",
         },
         {
-            "name": f"--{AOC_AWS_RESTORE_PREFIX_OPTION}-s3-bucket",
-            "default": os.getenv(
-                f"{AOC_AWS_RESTORE_PREFIX_OPTION.upper().replace('-', '_')}_S3_BUCKET",
-                "",
-            ),
-            "help": "S3 bucket name where to store backup files",
+            "name": "--aoc-aws-restore-s3-bucket",
+            "default": os.getenv("AOC_AWS_RESTORE_S3_BUCKET", ""),
+            "help": "S3 bucket name where backup files are stored",
         },
     ]:
         parser.addoption(
@@ -72,19 +53,13 @@ def pytest_addoption(parser: Parser) -> None:
 
     for option in [
         {
-            "name": f"--{AOC_AWS_BACKUP_PREFIX_OPTION}-ssm-bucket-name",
-            "default": os.getenv(
-                f"{AOC_AWS_BACKUP_PREFIX_OPTION.upper().replace('-', '_')}_SSM_BUCKET_NAME",
-                "",
-            ),
+            "name": "--aoc-aws-backup-ssm-bucket-name",
+            "default": os.getenv("AOC_AWS_BACKUP_SSM_BUCKET_NAME", ""),
             "help": "S3 bucket where temporary config files for aws ssm are stored",
         },
         {
-            "name": f"--{AOC_AWS_RESTORE_PREFIX_OPTION}-ssm-bucket-name",
-            "default": os.getenv(
-                f"{AOC_AWS_RESTORE_PREFIX_OPTION.upper().replace('-', '_')}_SSM_BUCKET_NAME",
-                "",
-            ),
+            "name": "--aoc-aws-restore-ssm-bucket-name",
+            "default": os.getenv("AOC_AWS_RESTORE_SSM_BUCKET_NAME", ""),
             "help": "S3 bucket where temporary config files for aws ssm are stored",
         },
     ]:
@@ -96,78 +71,8 @@ def pytest_addoption(parser: Parser) -> None:
         )
 
     parser.addoption(
-        f"--{AOC_AWS_RESTORE_PREFIX_OPTION}-backup-name",
+        "--aoc-aws-restore-backup-name",
         action="store",
-        default=os.getenv(
-            f"{AOC_AWS_RESTORE_PREFIX_OPTION.upper().replace('-', '_')}_BACKUP_NAME"
-        ),
+        default=os.getenv("AOC_AWS_RESTORE_BACKUP_NAME", ""),
         help="The backup folder name stored in S3 bucket",
-    )
-
-
-class AocAwsBackupDefaultOptions(TypedDict):
-    """AoC aws backup default options typed dict."""
-
-    backup_iam_role_arn: str
-    backup_vault_name: str
-    backup_prefix: str
-    backup_s3_bucket: str
-    backup_ssm_bucket_name: str
-
-
-class AocAwsRestoreDefaultOptions(TypedDict):
-    """AoC aws restore default options typed dict."""
-
-    backup_name: str
-    backup_s3_bucket: str
-    backup_ssm_bucket_name: str
-
-
-@pytest.fixture  # type: ignore
-def aoc_aws_backup_default_options(
-    request: pytest.FixtureRequest,
-) -> AocAwsBackupDefaultOptions:
-    """AoC aws backup tests default pytest options fixture.
-
-    A fixture providing default options that can be used by any
-    AoC aws backup tests.
-    """
-    return AocAwsBackupDefaultOptions(
-        backup_iam_role_arn=request.config.getoption(
-            f"{AOC_AWS_BACKUP_PREFIX_OPTION.replace('-', '_')}_iam_role_arn"
-        ),
-        backup_vault_name=request.config.getoption(
-            f"{AOC_AWS_BACKUP_PREFIX_OPTION.replace('-', '_')}_vault_name"
-        ),
-        backup_prefix=request.config.getoption(
-            f"{AOC_AWS_BACKUP_PREFIX_OPTION.replace('-', '_')}_prefix"
-        ),
-        backup_s3_bucket=request.config.getoption(
-            f"{AOC_AWS_BACKUP_PREFIX_OPTION.replace('-', '_')}_s3_bucket"
-        ),
-        backup_ssm_bucket_name=request.config.getoption(
-            f"{AOC_AWS_BACKUP_PREFIX_OPTION.replace('-', '_')}_ssm_bucket_name"
-        ),
-    )
-
-
-@pytest.fixture  # type: ignore
-def aoc_aws_restore_default_options(
-    request: pytest.FixtureRequest,
-) -> AocAwsRestoreDefaultOptions:
-    """AoC aws restore tests default pytest options fixture.
-
-    A fixture providing default options that can be used by any
-    AoC aws restore tests.
-    """
-    return AocAwsRestoreDefaultOptions(
-        backup_name=request.config.getoption(
-            f"{AOC_AWS_RESTORE_PREFIX_OPTION.replace('-', '_')}_backup_name"
-        ),
-        backup_s3_bucket=request.config.getoption(
-            f"{AOC_AWS_RESTORE_PREFIX_OPTION.replace('-', '_')}_s3_bucket"
-        ),
-        backup_ssm_bucket_name=request.config.getoption(
-            f"{AOC_AWS_RESTORE_PREFIX_OPTION.replace('-', '_')}_ssm_bucket_name"
-        ),
     )

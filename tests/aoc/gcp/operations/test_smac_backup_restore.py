@@ -6,26 +6,25 @@ from lib.aoc.gcp.operations.backup import AocGcpBackup
 from lib.aoc.gcp.operations.backup import AocGcpBackupDataVars
 from lib.aoc.gcp.operations.restore import AocGcpRestore
 from lib.aoc.gcp.operations.restore import AocGcpRestoreDataVars
-from tests.aoc.conftest import AocDefaultOptions
 
 
 @pytest.fixture  # type: ignore
 def aoc_gcp_backup(
-    ansible_module: BaseHostManager, aoc_default_options: AocDefaultOptions
+    ansible_module: BaseHostManager, pytestconfig: pytest.Config
 ) -> AocGcpBackup:
     """Fixture returning aoc gcp backup operations."""
     command_generator_vars: AocGcpBackupDataVars = AocGcpBackupDataVars(todo="todo")
 
     return AocGcpBackup(
-        aoc_version=aoc_default_options["stack_version"],
-        aoc_ops_image=aoc_default_options["ops_container_image"],
-        aoc_ops_image_tag=aoc_default_options["ops_container_image_tag"],
-        aoc_image_registry_username=aoc_default_options[
-            "ops_container_image_registry_username"
-        ],
-        aoc_image_registry_password=aoc_default_options[
-            "ops_container_image_registry_password"
-        ],
+        aoc_version=pytestconfig.getoption("aoc_version"),
+        aoc_ops_image=pytestconfig.getoption("aoc_ops_container_image"),
+        aoc_ops_image_tag=pytestconfig.getoption("aoc_ops_container_image_tag"),
+        aoc_image_registry_username=pytestconfig.getoption(
+            "aoc_ops_container_image_registry_username"
+        ),
+        aoc_image_registry_password=pytestconfig.getoption(
+            "aoc_ops_container_image_registry_password"
+        ),
         ansible_module=ansible_module,
         command_generator_vars=command_generator_vars,
     )
@@ -33,21 +32,21 @@ def aoc_gcp_backup(
 
 @pytest.fixture  # type: ignore
 def aoc_gcp_restore(
-    ansible_module: pytest.fixture, aoc_default_options: AocDefaultOptions
+    ansible_module: pytest.fixture, pytestconfig: pytest.Config
 ) -> AocGcpRestore:
     """Fixture returning aoc gcp restore operations."""
     command_generator_vars: AocGcpRestoreDataVars = AocGcpRestoreDataVars(todo="todo")
 
     return AocGcpRestore(
-        aoc_version=aoc_default_options["stack_version"],
-        aoc_ops_image=aoc_default_options["ops_container_image"],
-        aoc_ops_image_tag=aoc_default_options["ops_container_image_tag"],
-        aoc_image_registry_username=aoc_default_options[
-            "ops_container_image_registry_username"
-        ],
-        aoc_image_registry_password=aoc_default_options[
-            "ops_container_image_registry_password"
-        ],
+        aoc_version=pytestconfig.getoption("aoc_version"),
+        aoc_ops_image=pytestconfig.getoption("aoc_ops_container_image"),
+        aoc_ops_image_tag=pytestconfig.getoption("aoc_ops_container_image_tag"),
+        aoc_image_registry_username=pytestconfig.getoption(
+            "aoc_ops_container_image_registry_username"
+        ),
+        aoc_image_registry_password=pytestconfig.getoption(
+            "aoc_ops_container_image_registry_password"
+        ),
         ansible_module=ansible_module,
         command_generator_vars=command_generator_vars,
     )
