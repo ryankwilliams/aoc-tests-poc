@@ -10,7 +10,7 @@ from typing import TypedDict
 
 from pytest_ansible.host_manager import BaseHostManager
 
-from lib.aoc.ops_container_image import OpsContainerImage
+from lib.aoc.ops_container import OpsContainer
 
 __all__ = [
     "AocAwsRestore",
@@ -48,7 +48,7 @@ class AocAwsRestoreStackResult(TypedDict):
     playbook_result: bool
 
 
-class AocAwsRestore(OpsContainerImage):
+class AocAwsRestore(OpsContainer):
     """AocAwsRestore Class."""
 
     def __init__(
@@ -87,24 +87,22 @@ class AocAwsRestore(OpsContainerImage):
 
     def command_generator_setup(self) -> None:
         """Performs any setup required to run command generator playbooks."""
-        container_command_args: List[str] = [
+        self.command_args: List[str] = [
             f'aws_foundation_stack_name={self.command_generator_vars["deployment_name"]}',
             f'aws_backup_name={self.command_generator_vars["extra_vars"]["aws_backup_name"]}',
             f'aws_region={self.command_generator_vars["extra_vars"]["aws_region"]}',
             f'aws_s3_bucket={self.command_generator_vars["extra_vars"]["aws_s3_bucket"]}',
             f'aws_ssm_bucket_name={self.command_generator_vars["extra_vars"]["aws_ssm_bucket_name"]}',
         ]
-
-        self.container_command_args = container_command_args
-        self.container_command = "redhat.ansible_on_clouds.aws_restore_stack"
-        self.container_env_vars = {
+        self.command = "redhat.ansible_on_clouds.aws_restore_stack"
+        self.env_vars = {
             "ANSIBLE_CONFIG": "../aws-ansible.cfg",
             "DEPLOYMENT_NAME": f'{self.command_generator_vars["deployment_name"]}',
             "GENERATE_INVENTORY": "true",
             "CHECK_GENERATED_INVENTORY": "false",
             "PLATFORM": f"{self.cloud.upper()}",
         }
-        self.container_volume_mount = [
+        self.volume_mounts = [
             f'{self.command_generator_vars["cloud_credentials_path"]}:/home/runner/.aws/credentials:ro',
         ]
 

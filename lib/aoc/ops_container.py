@@ -3,13 +3,12 @@
 This package contains additional packages/modules "libraries" that
 handle Ansible On Clouds operations using the ops container image.
 """
+import typing
 from typing import Dict
 from typing import List
 from typing import Tuple
 
 from pytest_ansible.host_manager import BaseHostManager
-
-from lib.containers import ContainerEngine
 
 
 class OpsContainerImageMixin:
@@ -39,8 +38,8 @@ class OpsContainerImageMixin:
         return result
 
 
-class OpsContainerImage(OpsContainerImageMixin):
-    """OpsContainerImage Class."""
+class OpsContainer(OpsContainerImageMixin):
+    """OpsContainer Class."""
 
     def __init__(
         self,
@@ -70,19 +69,18 @@ class OpsContainerImage(OpsContainerImageMixin):
         self.aoc_ops_image_tag: str = aoc_ops_image_tag
         self.aoc_image_registry_username: str = aoc_image_registry_username
         self.aoc_image_registry_password: str = aoc_image_registry_password
+        self.ansible_module: BaseHostManager = ansible_module
 
         if not self.__validate():
             raise SystemExit(1)
 
-        self.container_engine = ContainerEngine(ansible_module)
-
-        self._container_command: str = ""
-        self._container_command_args: List[str] = []
-        self._container_env_vars: Dict[str, str] = {}
-        self._container_volume_mount: List[str] = []
+        self._command: str = ""
+        self.command_args: List[str] = []
+        self.env_vars: Dict[str, str] = {}
+        self.volume_mounts: List[str] = []
 
         # Authenticate with ops container image registry
-        if not self.container_engine.registry_login(
+        if not self.registry_login(
             self.aoc_ops_image.split("/")[0],
             self.aoc_image_registry_username,
             self.aoc_image_registry_password,
@@ -90,52 +88,47 @@ class OpsContainerImage(OpsContainerImageMixin):
             raise SystemExit(1)
 
         # Pull ops container image
-        if not self.container_engine.pull_image(
-            self.aoc_ops_image, self.aoc_ops_image_tag
-        ):
+        if not self.pull_image(self.aoc_ops_image, self.aoc_ops_image_tag):
             raise SystemExit(1)
 
-    @property
-    def container_command(self) -> str:
-        """Returns the container command string to run within the command generator vars container."""
-        return self._container_command
+    def registry_login(self, registry: str, username: str, password: str) -> bool:
+        """Logins to the registry provided using username/password
 
-    @container_command.setter
-    def container_command(self, value: str) -> None:
-        """Sets the command string value for the command generator vars container."""
-        self._container_command = (
-            f"{value} -e '{' '.join(self.container_command_args)}'"
+        :param registry: the registry hostname
+        :param username: the registry username to authenticate with
+        :param password: the registry password to authenticate with
+        """
+        result = self.ansible_module.docker_login(
+            registry_url=registry,
+            username=username,
+            password=password,
         )
+        if "failed" in result.contacted["localhost"]:
+            print(result.contacted["localhost"]["msg"])
+            return False
+        return True
+
+    def pull_image(self, image: str, tag: str) -> bool:
+        """Pull the image/tag provided.
+
+        :param image: the container image fqdn
+        :param tag: the container image tag
+        """
+        result = self.ansible_module.docker_image(name=image, tag=tag, source="pull")
+        if "failed" in result.contacted["localhost"]:
+            print(result.contacted["localhost"]["msg"])
+            return False
+        return True
 
     @property
-    def container_command_args(self) -> List[str]:
-        """Returns the container command arguments."""
-        return self._container_command_args
+    def command(self) -> str:
+        """Returns the container command string to run within the command generator vars container."""
+        return self._command
 
-    @container_command_args.setter
-    def container_command_args(self, value: List[str]) -> None:
-        """Sets the container command arguments."""
-        self._container_command_args = value
-
-    @property
-    def container_env_vars(self) -> Dict[str, str]:
-        """Returns the container's environment variables to be set."""
-        return self._container_env_vars
-
-    @container_env_vars.setter
-    def container_env_vars(self, value: Dict[str, str]) -> None:
-        """Sets the container's environment variables to be set."""
-        self._container_env_vars = value
-
-    @property
-    def container_volume_mount(self) -> List[str]:
-        """Returns the container's volume mounts."""
-        return self._container_volume_mount
-
-    @container_volume_mount.setter
-    def container_volume_mount(self, value: List[str]) -> None:
-        """Sets the container's volume mounts."""
-        self._container_volume_mount = value
+    @command.setter
+    def command(self, value: str) -> None:
+        """Sets the command string value for the command generator vars container."""
+        self._command = f"{value} -e '{' '.join(self.command_args)}'"
 
     def __validate(self) -> bool:
         """Validates any necessary input prior to performing backups.
@@ -168,10 +161,22 @@ class OpsContainerImage(OpsContainerImageMixin):
 
     def run_container(self, name: str) -> Tuple[str, bool]:
         """Runs the ops container with necessary input."""
-        return self.container_engine.run(
+        result = self.ansible_module.docker_container(
             name=name,
             image=f"{self.aoc_ops_image}:{self.aoc_ops_image_tag}",
-            command=self.container_command,
-            volumes=self.container_volume_mount,
-            env_vars=self.container_env_vars,
+            command=self.command,
+            detach="false",
+            state="started",
+            volumes=self.volume_mounts,
+            env=self.env_vars,
+        )
+
+        playbook_output: str = result.contacted["localhost"]["container"]["Output"]
+        print(playbook_output)
+
+        self.ansible_module.docker_container(name=name, state="absent")
+
+        return (
+            playbook_output,
+            typing.cast(int, result.contacted["localhost"]["status"]) == 0,
         )

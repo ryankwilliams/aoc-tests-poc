@@ -15,7 +15,7 @@ from mypy_boto3_s3.type_defs import ListObjectsOutputTypeDef
 from mypy_boto3_s3.type_defs import ResponseMetadataTypeDef
 from pytest_ansible.host_manager import BaseHostManager
 
-from lib.aoc.ops_container_image import OpsContainerImage
+from lib.aoc.ops_container import OpsContainer
 
 __all__ = [
     "AocAwsBackup",
@@ -52,7 +52,7 @@ class AocAwsBackupStackResult(TypedDict):
     backup_object_name: str
 
 
-class AocAwsBackup(OpsContainerImage):
+class AocAwsBackup(OpsContainer):
     """AocAwsBackup class.
 
     This class handles all operations to perform an aoc on aws stack backup.
@@ -102,7 +102,7 @@ class AocAwsBackup(OpsContainerImage):
 
     def command_generator_setup(self) -> None:
         """Performs any setup required to run command generator playbooks."""
-        self.container_command_args: List[str] = [
+        self.command_args: List[str] = [
             f'aws_foundation_stack_name={self.command_generator_vars["deployment_name"]}',
             f'aws_region={self.command_generator_vars["extra_vars"]["aws_region"]}',
             f'aws_backup_vault_name={self.command_generator_vars["extra_vars"]["aws_backup_vault_name"]}',
@@ -111,21 +111,21 @@ class AocAwsBackup(OpsContainerImage):
         ]
 
         if self.aoc_version != "2.3":
-            self.container_command_args.extend(
+            self.command_args.extend(
                 [
                     f'aws_ssm_bucket_name={self.command_generator_vars["extra_vars"]["aws_ssm_bucket_name"]}',
                     f'backup_prefix={self.command_generator_vars["extra_vars"]["backup_prefix"]}',
                 ]
             )
 
-        self.container_command = "redhat.ansible_on_clouds.aws_backup_stack"
-        self.container_env_vars = {
+        self.command = "redhat.ansible_on_clouds.aws_backup_stack"
+        self.env_vars = {
             "ANSIBLE_CONFIG": "../aws-ansible.cfg",
             "DEPLOYMENT_NAME": f'{self.command_generator_vars["deployment_name"]}',
             "GENERATE_INVENTORY": "true",
             "PLATFORM": f"{self.cloud.upper()}",
         }
-        self.container_volume_mount = [
+        self.volume_mounts = [
             f'{self.command_generator_vars["cloud_credentials_path"]}:/home/runner/.aws/credentials:ro',
         ]
 

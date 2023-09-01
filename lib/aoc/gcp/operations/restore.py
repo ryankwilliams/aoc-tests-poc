@@ -9,7 +9,7 @@ from typing import TypedDict
 
 from pytest_ansible.host_manager import BaseHostManager
 
-from lib.aoc.ops_container_image import OpsContainerImage
+from lib.aoc.ops_container import OpsContainer
 
 __all__ = [
     "AocGcpRestore",
@@ -31,7 +31,7 @@ class AocGcpRestoreDataVars(TypedDict, total=False):
     todo: str
 
 
-class AocGcpRestore(OpsContainerImage):
+class AocGcpRestore(OpsContainer):
     """AocGcpRestore Class."""
 
     def __init__(
@@ -72,7 +72,7 @@ class AocGcpRestore(OpsContainerImage):
     def command_generator_setup(self) -> None:
         """Performs any setup required to run command generator playbooks."""
         # TODO: Implementation
-        self.container_command = "command_generator_vars"
+        self.command = "command_generator_vars"
 
     def validate(self) -> bool:
         """Validates any necessary input prior to performing restores.
