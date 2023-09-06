@@ -3,16 +3,13 @@
 This module performs the standard operations for backing up an
 AoC deployment on AWS cloud.
 """
-import typing
-from typing import Dict
 from typing import List
 from typing import TypedDict
 
 import botocore.exceptions
 from boto3.session import Session
 from mypy_boto3_s3.client import S3Client
-from mypy_boto3_s3.type_defs import ListObjectsOutputTypeDef
-from mypy_boto3_s3.type_defs import ResponseMetadataTypeDef
+from mypy_boto3_s3.type_defs import ListObjectsV2OutputTypeDef
 from pytest_ansible.host_manager import BaseHostManager
 
 from lib.aoc.ops_container import OpsContainer
@@ -100,7 +97,7 @@ class AocAwsBackup(OpsContainer):
 
         self.command_generator_vars: AocAwsBackupDataVars = command_generator_vars
 
-    def command_generator_setup(self) -> None:
+    def populate_command_generator_args(self) -> None:
         """Performs any setup required to run command generator playbooks."""
         self.command_args: List[str] = [
             f'aws_foundation_stack_name={self.command_generator_vars["deployment_name"]}',
@@ -161,35 +158,24 @@ class AocAwsBackup(OpsContainer):
         s3_client: S3Client = Session().client("s3")
 
         try:
-            head_bucket_response: ResponseMetadataTypeDef = s3_client.head_bucket(
-                Bucket=bucket_name
-            )
+            s3_client.head_bucket(Bucket=bucket_name)
         except botocore.exceptions.ClientError as e:
             print(
                 f'Unable to locate bucket {bucket_name}, server message: {e.response["Error"]["Message"]}'
             )
             return ""
 
-        bucket_objects: ListObjectsOutputTypeDef = s3_client.list_objects_v2(
+        bucket_objects: ListObjectsV2OutputTypeDef = s3_client.list_objects_v2(
             Bucket=bucket_name, Delimiter="/"
         )
 
         return str(bucket_objects["CommonPrefixes"][-1]["Prefix"].strip("/"))
 
-    def setup(self) -> bool:
-        """Performs necessary setup tasks prior to issuing backup."""
-        result: bool = True
-        self.command_generator_setup()
-
-        if self.validate_command_generator_vars(
-            typing.cast(Dict[str, str], self.command_generator_vars)
-        ):
-            result = self.create_s3_bucket()
-        return result
-
     def backup_stack(self) -> AocAwsBackupStackResult:
         """Performs stack backup."""
         backup_object_name: str = ""
+
+        self.populate_command_generator_args()
 
         output, result = self.run_container(
             name=f'{self.command_generator_vars["deployment_name"]}-backup-stack'
