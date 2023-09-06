@@ -3,6 +3,8 @@
 This module performs the standard operations for backing up an
 AoC deployment on AWS cloud.
 """
+import json
+from random import randint
 from typing import List
 from typing import TypedDict
 
@@ -13,13 +15,6 @@ from mypy_boto3_s3.type_defs import ListObjectsV2OutputTypeDef
 from pytest_ansible.host_manager import BaseHostManager
 
 from lib.aoc.ops_container import OpsContainer
-
-__all__ = [
-    "AocAwsBackup",
-    "AocAwsBackupDataVars",
-    "AocAwsBackupDataExtraVars",
-    "AocAwsBackupStackResult",
-]
 
 
 class AocAwsBackupDataExtraVars(TypedDict, total=False):
@@ -42,11 +37,18 @@ class AocAwsBackupDataVars(TypedDict, total=False):
 
 
 class AocAwsBackupStackResult(TypedDict):
-    """Aoc stack backup results."""
+    """AoC stack backup results."""
 
     playbook_output: str
     playbook_result: bool
     backup_object_name: str
+
+
+class AocAwsBackupDeleteResult(TypedDict):
+    """AoC stack delete backup results."""
+
+    playbook_output: str
+    playbook_result: bool
 
 
 class AocAwsBackup(OpsContainer):
@@ -97,9 +99,9 @@ class AocAwsBackup(OpsContainer):
 
         self.command_generator_vars: AocAwsBackupDataVars = command_generator_vars
 
-    def populate_command_generator_args(self) -> None:
+    def populate_backup_command_generator_args(self) -> None:
         """Performs any setup required to run command generator playbooks."""
-        self.command_args: List[str] = [
+        self.command_args = [
             f'aws_foundation_stack_name={self.command_generator_vars["deployment_name"]}',
             f'aws_region={self.command_generator_vars["extra_vars"]["aws_region"]}',
             f'aws_backup_vault_name={self.command_generator_vars["extra_vars"]["aws_backup_vault_name"]}',
@@ -126,6 +128,25 @@ class AocAwsBackup(OpsContainer):
             f'{self.command_generator_vars["cloud_credentials_path"]}:/home/runner/.aws/credentials:ro',
         ]
 
+    def populate_delete_backup_command_generator_args(
+        self, backup_names: List[str]
+    ) -> None:
+        self.command_args: List[str] = [
+            f'aws_region={self.command_generator_vars["extra_vars"]["aws_region"]}',
+            f'aws_s3_bucket={self.command_generator_vars["extra_vars"]["aws_s3_bucket"]}',
+            f"aws_backup_names={json.dumps(backup_names)}",
+            "delete=True",
+        ]
+
+        self.command = "redhat.ansible_on_clouds.aws_backups_delete"
+        self.env_vars = {
+            "ANSIBLE_CONFIG": "../aws-ansible.cfg",
+            "PLATFORM": f"{self.cloud.upper()}",
+        }
+        self.volume_mounts = [
+            f'{self.command_generator_vars["cloud_credentials_path"]}:/home/runner/.aws/credentials:ro',
+        ]
+
     def create_s3_bucket(self) -> bool:
         """Create s3 bucket to store backup files."""
         result = self.ansible_module.s3_bucket(
@@ -142,6 +163,7 @@ class AocAwsBackup(OpsContainer):
         result = self.ansible_module.s3_bucket(
             name=self.command_generator_vars["extra_vars"]["aws_s3_bucket"],
             state="absent",
+            force=True,
         )
         if "failed" in result.contacted["localhost"]:
             print(result.contacted["localhost"]["msg"])
@@ -175,7 +197,7 @@ class AocAwsBackup(OpsContainer):
         """Performs stack backup."""
         backup_object_name: str = ""
 
-        self.populate_command_generator_args()
+        self.populate_backup_command_generator_args()
 
         output, result = self.run_container(
             name=f'{self.command_generator_vars["deployment_name"]}-backup-stack'
@@ -189,3 +211,12 @@ class AocAwsBackup(OpsContainer):
             playbook_output=output,
             playbook_result=result,
         )
+
+    def delete_stack_backup(self, backup_names: List[str]) -> AocAwsBackupDeleteResult:
+        self.populate_delete_backup_command_generator_args(backup_names)
+
+        output, result = self.run_container(
+            name=f"aoc-delete-backup-{randint(0, 100000)}"
+        )
+
+        return AocAwsBackupDeleteResult(playbook_output=output, playbook_result=result)
