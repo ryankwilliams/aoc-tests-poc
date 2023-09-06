@@ -1,6 +1,8 @@
 """Tests validating AoC on AWS backup/restore."""
 import typing
 from typing import Dict
+from typing import Iterator
+from typing import List
 
 import pytest
 from pytest_ansible.host_manager import BaseHostManager
@@ -8,18 +10,16 @@ from pytest_ansible.host_manager import BaseHostManager
 from lib.aoc.aws.operations.backup import AocAwsBackup
 from lib.aoc.aws.operations.backup import AocAwsBackupDataExtraVars
 from lib.aoc.aws.operations.backup import AocAwsBackupDataVars
-from lib.aoc.aws.operations.backup import AocAwsBackupStackResult
 from lib.aoc.aws.operations.restore import AocAwsRestore
 from lib.aoc.aws.operations.restore import AocAwsRestoreDataExtraVars
 from lib.aoc.aws.operations.restore import AocAwsRestoreDataVars
-from lib.aoc.aws.operations.restore import AocAwsRestoreStackResult
 
 
 @pytest.fixture  # type: ignore
 def aoc_aws_backup_stack(
     ansible_module: BaseHostManager,
     pytestconfig: pytest.Config,
-) -> AocAwsBackup:
+) -> Iterator[AocAwsBackup]:
     """Fixture returning aoc aws backup operations."""
 
     command_generator_vars: AocAwsBackupDataVars = AocAwsBackupDataVars(
@@ -39,7 +39,7 @@ def aoc_aws_backup_stack(
         ),
     )
 
-    return AocAwsBackup(
+    aoc_aws_backup = AocAwsBackup(
         aoc_version=pytestconfig.getoption("aoc_version"),
         aoc_ops_image=pytestconfig.getoption("aoc_ops_container_image"),
         aoc_ops_image_tag=pytestconfig.getoption("aoc_ops_container_image_tag"),
@@ -52,6 +52,14 @@ def aoc_aws_backup_stack(
         ansible_module=ansible_module,
         command_generator_vars=command_generator_vars,
     )
+    yield aoc_aws_backup
+
+    # Delete backup and s3 bucket
+    if pytestconfig.cache.get("delete_stack_backup", True):
+        aoc_aws_backup.delete_stack_backup(
+            [pytestconfig.cache.get("stack_backup_object_name", "")]
+        )
+        aoc_aws_backup.delete_s3_bucket()
 
 
 @pytest.fixture  # type: ignore
@@ -92,12 +100,10 @@ def aoc_aws_restore_stack(
 class TestAoCAwsStackBackupRestore:
     """Test suite covering backup/restore operations for an AAP stack."""
 
-    # TODO:
-    #   1. Remove backup files (should happen pass or fail)
-    #   2. Remove s3 bucket (should happen pass or fail)
-
     @pytest.mark.aoc_aws_backup_stack  # type: ignore
-    def test_backup_stack(self, aoc_aws_backup_stack: AocAwsBackup) -> None:
+    def test_backup_stack(
+        self, aoc_aws_backup_stack: AocAwsBackup, pytestconfig: pytest.Config
+    ) -> None:
         """Test verifies a stack can be backed up using the ops container image.
 
         Test procedure:
@@ -114,18 +120,24 @@ class TestAoCAwsStackBackupRestore:
             3. Backup object exists in the s3 bucket
             4. Backup object name is in the playbook output
         """
+        pytestconfig.cache.set(
+            "delete_stack_backup", pytestconfig.getoption("aoc_aws_skip_delete_backup")
+        )
+
         assert aoc_aws_backup_stack.validate_command_generator_vars(
             typing.cast(Dict[str, str], aoc_aws_backup_stack.command_generator_vars)
-        )
-        assert aoc_aws_backup_stack.create_s3_bucket()
+        ), "one or more stack backup vars are undefined"
+        assert aoc_aws_backup_stack.create_s3_bucket(), "failed to create S3 bucket"
 
-        stack_backup_results: AocAwsBackupStackResult = (
-            aoc_aws_backup_stack.backup_stack()
-        )
-        assert stack_backup_results["playbook_result"]
+        stack_backup_results = aoc_aws_backup_stack.backup_stack()
+        assert stack_backup_results["playbook_result"], "backup stack playbook failed"
         assert (
             stack_backup_results["backup_object_name"]
             in stack_backup_results["playbook_output"]
+        ), "stack backup name does not exist in playbook output"
+
+        pytestconfig.cache.set(
+            "stack_backup_object_name", stack_backup_results["backup_object_name"]
         )
 
     @pytest.mark.aoc_aws_restore_stack  # type: ignore
@@ -145,9 +157,46 @@ class TestAoCAwsStackBackupRestore:
         """
         assert aoc_aws_restore_stack.validate_command_generator_vars(
             typing.cast(Dict[str, str], aoc_aws_restore_stack.command_generator_vars)
-        )
-        stack_restore_results: AocAwsRestoreStackResult = (
-            aoc_aws_restore_stack.restore_stack()
-        )
-        assert stack_restore_results["playbook_result"]
+        ), "one or more stack restore vars are undefined"
+        stack_restore_results = aoc_aws_restore_stack.restore_stack()
+        assert stack_restore_results["playbook_result"], "restore stack playbook failed"
+
         # TODO: Determine post checks to verify restore
+
+
+@pytest.mark.aoc_aws_delete_backups  # type: ignore
+def test_delete_backups(
+    aoc_aws_backup_stack: AocAwsBackup, pytestconfig: pytest.Config
+) -> None:
+    """Test verifies a stack backup can be deleted and removed within aws account.
+
+    Test procedure:
+        1. Validate registry.redhat.io authentication/pull ops container image
+            (Handled when fixture constructs AocAwsRestore class)
+        2. Validate required test data for restore playbook is defined
+        3. Generate the ops delete backup playbook extra vars
+        4. Run ops container targeting delete backup playbook w/extra vars
+        5. Verify backups were deleted
+    Expected results:
+        1. Ops container backup playbook finishes successfully
+        2. Backup files no longer exist in S3 bucket
+    """
+    # Skip having the fixture attempt to delete backups as this test is focused
+    # around deleting backups
+    pytestconfig.cache.set("delete_stack_backup", False)
+
+    backup_names: List[str] = pytestconfig.getoption("aoc_aws_delete_backup_name")
+    assert (
+        len(backup_names) != 0
+    ), f"no stack backup names provided, received: {backup_names}"
+
+    # TODO: Validate input (e.g. aws region, etc)
+
+    stack_delete_backup_result = aoc_aws_backup_stack.delete_stack_backup(backup_names)
+    assert stack_delete_backup_result[
+        "playbook_result"
+    ], "delete stack backups playbook failed"
+
+    # TODO: Verify objects no longer exists in bucket
+
+    # TODO: Delete the S3 bucket?

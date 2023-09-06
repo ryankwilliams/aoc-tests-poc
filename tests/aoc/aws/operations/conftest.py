@@ -3,6 +3,7 @@
 This module contains commonly used code across all test modules.
 Majority of the functions here will be pytest fixtures.
 """
+import argparse
 import os
 
 from _pytest.config.argparsing import Parser
@@ -75,4 +76,18 @@ def pytest_addoption(parser: Parser) -> None:
         action="store",
         default=os.getenv("AOC_AWS_RESTORE_BACKUP_NAME", ""),
         help="The backup folder name stored in S3 bucket",
+    )
+
+    parser.addoption(
+        "--aoc-aws-delete-backup-name",
+        action="append",
+        default=[],
+        help="The backup name in the S3 bucket to delete",
+    )
+
+    parser.addoption(
+        "--aoc-aws-skip-delete-backup",
+        action=argparse.BooleanOptionalAction,
+        default=False,
+        help="Enable to disable deleting stack backup",
     )
