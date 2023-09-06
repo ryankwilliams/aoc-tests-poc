@@ -3,8 +3,6 @@
 This module performs the standard operations for restoring an
 AoC deployment on AWS cloud.
 """
-import typing
-from typing import Dict
 from typing import List
 from typing import TypedDict
 
@@ -85,7 +83,7 @@ class AocAwsRestore(OpsContainer):
 
         self.command_generator_vars: AocAwsRestoreDataVars = command_generator_vars
 
-    def command_generator_setup(self) -> None:
+    def populate_command_generator_args(self) -> None:
         """Performs any setup required to run command generator playbooks."""
         self.command_args: List[str] = [
             f'aws_foundation_stack_name={self.command_generator_vars["deployment_name"]}',
@@ -106,15 +104,10 @@ class AocAwsRestore(OpsContainer):
             f'{self.command_generator_vars["cloud_credentials_path"]}:/home/runner/.aws/credentials:ro',
         ]
 
-    def setup(self) -> bool:
-        """Performs necessary setup tasks prior to issuing stack restore."""
-        self.command_generator_setup()
-        return self.validate_command_generator_vars(
-            typing.cast(Dict[str, str], self.command_generator_vars)
-        )
-
     def restore_stack(self) -> AocAwsRestoreStackResult:
         """Performs stack restore."""
+        self.populate_command_generator_args()
+
         output, result = self.run_container(
             name=f'{self.command_generator_vars["deployment_name"]}-restore-stack'
         )

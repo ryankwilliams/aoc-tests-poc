@@ -1,4 +1,7 @@
 """Tests validating AoC on AWS backup/restore."""
+import typing
+from typing import Dict
+
 import pytest
 from pytest_ansible.host_manager import BaseHostManager
 
@@ -99,16 +102,22 @@ class TestAoCAwsStackBackupRestore:
 
         Test procedure:
             1. Validate registry.redhat.io authentication/pull ops container image
+                (Handled when fixture constructs AocAwsBackup class)
             2. Validate required test data for backup playbook is defined
             3. Generate the ops backup playbook extra vars
-            4. Run ops container targeting backup playbook w/extra vars
-            5. Get the stack backup name to be used for restoring the stack
+            4. Create s3 bucket to store backup files
+            5. Run ops container targeting backup playbook w/extra vars
+            6. Get the stack backup name to be used for restoring the stack
         Expected results:
-            1. Ops container backup playbook finishes successfully
-            2. Verify backup object exists in the s3 bucket
-            3. Verify the backup object name is in the playbook output
+            1. S3 bucket is created
+            2. Ops container backup playbook finishes successfully
+            3. Backup object exists in the s3 bucket
+            4. Backup object name is in the playbook output
         """
-        assert aoc_aws_backup_stack.setup()
+        assert aoc_aws_backup_stack.validate_command_generator_vars(
+            typing.cast(Dict[str, str], aoc_aws_backup_stack.command_generator_vars)
+        )
+        assert aoc_aws_backup_stack.create_s3_bucket()
 
         stack_backup_results: AocAwsBackupStackResult = (
             aoc_aws_backup_stack.backup_stack()
@@ -125,6 +134,7 @@ class TestAoCAwsStackBackupRestore:
 
         Test procedure:
             1. Validate registry.redhat.io authentication/pull ops container image
+                (Handled when fixture constructs AocAwsRestore class)
             2. Validate required test data for restore playbook is defined
             3. Generate the ops restore playbook extra vars
             4. Run ops container targeting restore playbook w/extra vars
@@ -133,7 +143,9 @@ class TestAoCAwsStackBackupRestore:
             1. Ops container backup playbook finishes successfully
             2. Access to the AoC stack is working as prior to the restore
         """
-        assert aoc_aws_restore_stack.setup()
+        assert aoc_aws_restore_stack.validate_command_generator_vars(
+            typing.cast(Dict[str, str], aoc_aws_restore_stack.command_generator_vars)
+        )
         stack_restore_results: AocAwsRestoreStackResult = (
             aoc_aws_restore_stack.restore_stack()
         )
