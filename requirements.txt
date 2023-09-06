@@ -1,5 +1,6 @@
 ansible
 boto3
+boto3-stubs[essential]
 pre-commit
 pytest
 pytest-ansible
