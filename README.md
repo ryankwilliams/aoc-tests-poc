@@ -14,6 +14,9 @@ You may find items missing currently as it is still under construction, such as:
 
 All of these will be coming soon!
 
+1. Foo
+2. Bar
+
 ## Quickstart
 
 Run the following commands below to setup your environment to run any tests:
