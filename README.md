@@ -1,5 +1,9 @@
 # Ansible On Clouds "AoC" Tests/Test Scenarios
 
+*This repository is now archived. For the latest revision, refer to
+[ansible-on-clouds-tests](https://github.com/ansible/ansible-on-clouds-tests)
+repository.*
+
 A repository demonstrating Ansible On Clouds automated tests/test scenarios
 using the pytest framework.
 
